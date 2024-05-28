@@ -3,7 +3,6 @@
 #include <iostream>
 using namespace std;
 
-
 void compileInfoLog(unsigned int id, logType type)
 {
     int success;
