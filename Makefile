@@ -18,7 +18,8 @@ LFLAGS =
 OUTPUT	:= output
 
 # define source directory
-SRC		:= src
+# SRC		:= src
+SRC		:= src/$(dir) #// 传递 var 变量定义执行文件目录
 
 # define include directory
 INCLUDE	:= include
