@@ -39,6 +39,8 @@ int main()
         return -1;
     }
 
+    // std::cout<<vertexShaderSource<<std::endl;
+
     // 顶点着色器
     // 为了能够让OpenGL使用，必须运行时动态编译它的源码。
     // 创建着色器对象，还是用ID来引用
@@ -48,14 +50,14 @@ int main()
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
     // 如果希望知道glCompileShader是否编译成功，有没有报错
-    // compileInfoLog(vertexShader, logType::SHADER);
+    compileInfoLog(vertexShader, logType::SHADER);
 
     // 片段着色器
     unsigned int fragmentShader;
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
-    // compileInfoLog(fragmentShader, logType::SHADER);
+    compileInfoLog(fragmentShader, logType::SHADER);
 
     // 着色器程序
     // 两个着色器编译完成后，需要把二者对象链接到一个用来渲染的着色器程序Shader Program
@@ -68,7 +70,7 @@ int main()
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
-    // compileInfoLog(shaderProgram, logType::SHADER_PROGRAM);
+    compileInfoLog(shaderProgram, logType::SHADER_PROGRAM);
 
     // 在程序对象链接着色器后，可以删除着色器对象了
     glDeleteShader(vertexShader);

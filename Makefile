@@ -54,6 +54,7 @@ Libraries := -lglad -lglfw3dll
 
 # define the C source files
 SOURCES		:= $(wildcard $(patsubst %,%/*.cpp, $(SOURCEDIRS)))
+SOURCES	+= include/Utils/utils.cpp
 
 # define the C object files
 OBJECTS		:= $(SOURCES:.cpp=.o)
