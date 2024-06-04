@@ -29,6 +29,8 @@ public:
 
         const char *vert_char = vert_string.insert(2, dirName).c_str();
         const char *frag_char = frag_string.insert(2, dirName).c_str();
+        // const char *vert_char = vert_string.c_str();
+        // const char *frag_char = frag_string.c_str();
         const char *geom_char;
 
         if (geometryPath != nullptr)
@@ -68,7 +70,7 @@ public:
             fShaderFile.close();
             // convert stream into string
             vertexCode = vShaderStream.str();
-            vertexCode = fShaderStream.str();
+            fragmentCode = fShaderStream.str();
             // if geometry shader path is present, also load a geometry shader
             // 如果存在几何体着色器路径，则加载一个几何体着色器
             if (geometryPath != nullptr)

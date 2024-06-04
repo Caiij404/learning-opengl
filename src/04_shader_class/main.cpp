@@ -1,8 +1,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <tool/shader.h>
-// #include <tool/shader.h>
 #include <iostream>
+
+using namespace std;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -10,6 +11,8 @@ std::string Shader::dirName;
 
 int main(int argc, char *argv[])
 {
+    // make run的时候argv[1]是我们想要的路径，但F5调试，则又不是
+    std::cout<<"---------------------" << argv[1] << "---------------------------------"<< std::endl;
     Shader::dirName = argv[1];
     glfwInit();
     // 设置主要和次要版本
@@ -39,6 +42,7 @@ int main(int argc, char *argv[])
     // 注册窗口变化监听
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+    // Shader ourShader("./src/04_shader_class/shader/vertex.glsl", "./src/04_shader_class/shader/fragment.glsl");
     Shader ourShader("./shader/vertex.glsl", "./shader/fragment.glsl");
 
     // 定义顶点数组
