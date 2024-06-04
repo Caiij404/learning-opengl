@@ -17,9 +17,9 @@ LFLAGS =
 # define output directory
 OUTPUT	:= output
 
-# define source directory
-# SRC		:= src
+# define source directory 运行时修改此处路径
 SRC		:= src/$(dir) #// 传递 var 变量定义执行文件目录
+CLEAN_SRC		:= src/$(dir)/*.o #// 删除所有.o文件
 
 # define include directory
 INCLUDE	:= include
@@ -28,14 +28,16 @@ INCLUDE	:= include
 LIB		:= lib
 
 ifeq ($(OS),Windows_NT)
+LIBRARIES	:= -lglad -lglfw3dll -llibassimp
 MAIN	:= main.exe
 SOURCEDIRS	:= $(SRC)
 INCLUDEDIRS	:= $(INCLUDE)
 LIBDIRS		:= $(LIB)
-FIXPATH = $(subst /,\,$1)
-RM			:= del /q /f
+FIXPATH = $(subst /,/,$1)
+RM			:= del /q a/f
 MD	:= mkdir
 else
+LIBRARIES	:= -lglad -lglfw -ldl -lpthread
 MAIN	:= main
 SOURCEDIRS	:= $(shell find $(SRC) -type d)
 INCLUDEDIRS	:= $(shell find $(INCLUDE) -type d)
@@ -50,20 +52,18 @@ INCLUDES	:= $(patsubst %,-I%, $(INCLUDEDIRS:%/=%))
 
 # define the C libs
 LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%))
-Libraries := -lglad -lglfw3dll
 
 # define the C source files
 SOURCES		:= $(wildcard $(patsubst %,%/*.cpp, $(SOURCEDIRS)))
 SOURCES	+= include/Utils/utils.cpp
+SOURCES	+= include/imgui/imgui_impl_glfw.cpp include/imgui/imgui_impl_opengl3.cpp
+SOURCES	+= include/imgui/imgui.cpp include/imgui/imgui_draw.cpp include/imgui/imgui_widgets.cpp
 
-# define the C object files
+# define the C object files 
 OBJECTS		:= $(SOURCES:.cpp=.o)
 
-# define the dependency output files
-DEPS		:= $(OBJECTS:.o=.d)
-
 #
-# The following part of the makefile is generic; it can be used to
+# The following part of the makefile is generic; it can be used to 
 # build any executable just by changing the definitions above and by
 # deleting dependencies appended to the file from 'make depend'
 #
@@ -76,27 +76,24 @@ all: $(OUTPUT) $(MAIN)
 $(OUTPUT):
 	$(MD) $(OUTPUT)
 
-$(MAIN): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(OBJECTS) $(LFLAGS) $(LIBS) $(Libraries)
+$(MAIN): $(OBJECTS) 
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(OBJECTS) $(LFLAGS) $(LIBS) $(LIBRARIES)
 
-# include all .d files
--include $(DEPS)
-
-# this is a suffix replacement rule for building .o's and .d's from .c's
+# this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
-# the rule(a .c file) and $@: the name of the target of the rule (a .o file)
-# -MMD generates dependency output files same name as the .o file
+# the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
 # (see the gnu make manual section about automatic variables)
 .cpp.o:
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c -MMD $<  -o $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $<  -o $@
 
 .PHONY: clean
 clean:
 	$(RM) $(OUTPUTMAIN)
-	$(RM) $(call FIXPATH,$(OBJECTS))
-	$(RM) $(call FIXPATH,$(DEPS))
+	$(RM) $(call FIXPATH,$(CLEAN_SRC))
 	@echo Cleanup complete!
 
+# 经调试，传递的参数并不是路径的字符串...
+# 此处./src/$(dir) 传递main函数 argv 的参数
 run: all
-	./$(OUTPUTMAIN)
+	./$(OUTPUTMAIN) src/$(dir)/
 	@echo Executing 'run: all' complete!
