@@ -1,9 +1,12 @@
+// 3.用两个着色器程序画两个三角形
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <iostream>
 
 #include "Utils/utils.h"
+
+using namespace std;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -13,17 +16,25 @@ const GLuint SCR_WIDTH = 800;
 const GLuint SCR_HEIGHT = 600;
 
 const char *vertexShaderSource03 = "#version 330 core\n"
-                                 "layout (location = 0) in vec3 aPos;\n"
-                                 "void main()\n"
-                                 "{\n"
-                                 "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-                                 "}\0";
-const char *fragmentShaderSource03 = "#version 330 core\n"
-                                   "out vec4 FragColor;\n"
+                                   "layout (location = 0) in vec3 aPos;\n"
                                    "void main()\n"
                                    "{\n"
-                                   "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-                                   "}\n\0";
+                                   "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+                                   "}\0";
+const char *fragmentShaderSource03 = "#version 330 core\n"
+                                     "out vec4 FragColor;\n"
+                                     "void main()\n"
+                                     "{\n"
+                                     "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+                                     "}\n\0";
+
+const char *fragmentShaderSource031 = "#version 330 core\n"
+                                      "out vec4 FragColor;\n"
+                                      "void main()\n"
+                                      "{\n"
+                                      "   FragColor = vec4(0.2, 0.9, 0.5, 1.0);\n"
+                                      "}\n\0";
+
 
 int main()
 {
@@ -33,6 +44,9 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    // 通过不同的vao和vbo绘制两个三角形
+    std::cout << "-------------------" << "Draw 2 triangles with different vao & vbo" << "-------------------" << std::endl;
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -65,74 +79,99 @@ int main()
     // check for shader compile errors
     compileInfoLog(vertexShader, SHADER);
 
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource03, NULL);
-    glCompileShader(fragmentShader);
-    compileInfoLog(fragmentShader, SHADER);
+    GLuint fragmentShaders[2];
+    fragmentShaders[0] = glCreateShader(GL_FRAGMENT_SHADER);
+    fragmentShaders[1] = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShaders[0], 1, &fragmentShaderSource03, NULL);
+    glShaderSource(fragmentShaders[1], 1, &fragmentShaderSource031, NULL);
+    glCompileShader(fragmentShaders[0]);
+    glCompileShader(fragmentShaders[1]);
+    compileInfoLog(fragmentShaders[0], SHADER);
+    compileInfoLog(fragmentShaders[1], SHADER);
 
-    // Link Shader
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-    // check errors
-    compileInfoLog(shaderProgram, SHADER_PROGRAM);
+    GLuint shaderPrograms[2];
+    shaderPrograms[0] = glCreateProgram();
+    glAttachShader(shaderPrograms[0], vertexShader);
+    glAttachShader(shaderPrograms[0], fragmentShaders[0]);
+    glLinkProgram(shaderPrograms[0]);
+    compileInfoLog(shaderPrograms[0], SHADER_PROGRAM);
+    shaderPrograms[1] = glCreateProgram();
+    glAttachShader(shaderPrograms[1], vertexShader);
+    glAttachShader(shaderPrograms[1], fragmentShaders[1]);
+    glLinkProgram(shaderPrograms[1]);
+    compileInfoLog(shaderPrograms[1], SHADER_PROGRAM);
 
     // 链接完就可以删除着色器
     glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    glDeleteShader(fragmentShaders[0]);
+    glDeleteShader(fragmentShaders[1]);
 
-    float vertices[] = {
+    float triangle1[] = {
         // first triangle
-        -0.9f, -0.5f, 0.0f,  // left 
-        -0.0f, -0.5f, 0.0f,  // right
-        -0.45f, 0.5f, 0.0f,  // top 
-        // second triangle
-         0.0f, -0.5f, 0.0f,  // left
-         0.9f, -0.5f, 0.0f,  // right
-         0.45f, 0.5f, 0.0f   // top 
+        -0.9f, -0.5f, 0.0f, // left
+        -0.0f, -0.5f, 0.0f, // right
+        -0.45f, 0.5f, 0.0f, // top
+
     };
 
-    GLuint vbo, vao;
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
+    float triangle2[] = {
+        // second triangle
+        0.0f, -0.5f, 0.0f, // left
+        0.9f, -0.5f, 0.0f, // right
+        0.45f, 0.5f, 0.0f  // top
+    };
 
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes
-    glBindVertexArray(vao);
+    // ------------------------------------分割线------------------------------------------
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    std::cout << "authoritative code" << std::endl;
+    GLuint vao[2], vbo[2];
+    glGenVertexArrays(2, vao);
+    glGenBuffers(2, vbo);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glBindVertexArray(vao[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle1), triangle1, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    // glEnableVertexAttribArray，以顶点属性位置值作为参数，启用顶点属性；顶点属性默认是禁用的。
     glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // note that this is allowed, the call to glVertexAttribPointer registered vbo as ther vertex attribute's bound vertex buffer object so afterward we can safely unbind
-    glBindBuffer(GL_ARRAY_BUFFER,0);
+    glBindVertexArray(vao[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle2), triangle2, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    while(!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window))
     {
         processInput(window);
 
         glClearColor(0.2, 0.3, 0.3, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(shaderProgram);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glUseProgram(shaderPrograms[0]);
+        glBindVertexArray(vao[0]);
+        // glUseProgram(shaderProgram);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
+        glUseProgram(shaderPrograms[1]);
+        glBindVertexArray(vao[1]);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
-    glDeleteProgram(shaderProgram);
+    glDeleteBuffers(2, vbo);
+    glDeleteVertexArrays(2, vao);
+    glDeleteProgram(shaderPrograms[0]);
+    glDeleteProgram(shaderPrograms[1]);
     glfwTerminate();
     return 0;
 }
-
 
 void processInput(GLFWwindow *window)
 {
@@ -142,9 +181,9 @@ void processInput(GLFWwindow *window)
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions; note that width and 
+    // make sure the viewport matches the new window dimensions; note that width and
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
 }
