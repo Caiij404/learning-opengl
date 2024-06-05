@@ -12,7 +12,7 @@ std::string Shader::dirName;
 int main(int argc, char *argv[])
 {
     // make run的时候argv[1]是我们想要的路径，但F5调试，则又不是
-    std::cout<<"---------------------" << argv[1] << "---------------------------------"<< std::endl;
+    std::cout << "---------------------" << argv[1] << "---------------------------------" << std::endl;
     Shader::dirName = argv[1];
     glfwInit();
     // 设置主要和次要版本
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     // Shader ourShader("./src/05_shader_class/shader/vertex2.glsl", "./src/05_shader_class/shader/fragment.glsl");
-    Shader ourShader("./shader/vertex2.glsl", "./shader/fragment.glsl");
+    Shader ourShader("./shader/vertex3.glsl", "./shader/fragment.glsl");
 
     // 定义顶点数组
     float vertices[] = {
@@ -73,11 +73,8 @@ int main(int argc, char *argv[])
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    glBindVertexArray(0);
-
     // 设置线框绘制模式
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
@@ -87,13 +84,14 @@ int main(int argc, char *argv[])
         glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        float time = glfwGetTime();
+        float x = sin(time / 2 + 0.5) * 0.5;
+        float y = cos(time / 2 + 0.5) * 0.5;
+        std::cout << x << "    " << y << std::endl;
+        ourShader.setFloat("xOffset", x);
+        ourShader.setFloat("yOffset", y);
         ourShader.use();
-        glBindVertexArray(VAO); // 不需要每次都绑定，对于当前程序其实只需要绑定一次就可以了
-        // glDrawArrays(GL_POINTS, 0, 6);
-        // glDrawArrays(GL_LINE_LOOP, 0, 3);
         glDrawArrays(GL_TRIANGLES, 0, 3);
-
-        glBindVertexArray(0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
