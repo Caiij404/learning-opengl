@@ -7,6 +7,7 @@
 
 #include "Utils/utils.h"
 
+#define PI  3.14159265358979323846
 // 顶点数组对象: Vertex Array Object, VAO
 // 顶点缓冲对象: Vertex Buffer Object, VBO
 // 元素缓冲对象: Element Buffer Object, EBO 或 索引缓冲对象: Index Buffer Object, IBO
@@ -110,6 +111,35 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         glBindVertexArray(vao);
+
+        float timeValue = glfwGetTime();
+        float r1 = (sin(timeValue * 1) / 2);
+        float g1 = (cos(timeValue * 1) / 2);
+        float b1 = (sin(timeValue * 1 - PI / 2) / 2);
+
+        float r2 = (sin(timeValue * 2) / 2);
+        float g2 = (cos(timeValue * 2) / 2);
+        float b2 = (sin(timeValue * 2 - PI / 2) / 2);
+
+        float r3 = (sin(timeValue * 4) / 2);
+        float g3 = (cos(timeValue * 4) / 2);
+        float b3 = (sin(timeValue * 4 - PI / 2) / 2);
+
+        vertices[3] = r1;
+        vertices[4] = g1;
+        vertices[5] = b1;
+
+        vertices[9] = r2;
+        vertices[10] = g2;
+        vertices[11] = b2;
+
+        vertices[15] = r3;
+        vertices[16] = g3;
+        vertices[17] = b3;
+        
+        // 更新缓冲数据，使三角形颜色改变
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glfwSwapBuffers(window);
