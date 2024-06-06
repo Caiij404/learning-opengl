@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     // Shader ourShader("./src/05_shader_class/shader/vertex2.glsl", "./src/05_shader_class/shader/fragment.glsl");
-    Shader ourShader("./shader/vertex3.glsl", "./shader/fragment.glsl");
+    Shader ourShader("./shader/vertex.glsl", "./shader/fragment.glsl");
 
     // 定义顶点数组
     float vertices[] = {
@@ -87,9 +87,9 @@ int main(int argc, char *argv[])
         float time = glfwGetTime();
         float x = sin(time / 2 + 0.5) * 0.5;
         float y = cos(time / 2 + 0.5) * 0.5;
-        std::cout << x << "    " << y << std::endl;
-        ourShader.setFloat("xOffset", x);
-        ourShader.setFloat("yOffset", y);
+        // std::cout << x << "    " << y << std::endl;
+        // ourShader.setFloat("xOffset", x);
+        // ourShader.setFloat("yOffset", y);
         ourShader.use();
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
