@@ -1,3 +1,4 @@
+// 练习2
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -18,7 +19,6 @@ void processInput(GLFWwindow *window);
 std::string Shader::dirName;
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 1200;
-
 
 int main(int argc, char *argv[])
 {
@@ -161,20 +161,25 @@ int main(int argc, char *argv[])
     ourShader.setInt("texture1", 0);
     ourShader.setInt("texture2", 1);
 
-    // glm::vec4 vec(1.0f, 0.0, 0.0, 1.0);
-    glm::mat4 mat(1.0f);
+    // // glm::vec4 vec(1.0f, 0.0, 0.0, 1.0);
+    // glm::mat4 mat(1.0f);
 
-    mat = glm::scale(mat, glm::vec3(2.0, 2.0, 2.0));
+    // // mat = glm::scale(mat, glm::vec3(2.0, 2.0, 2.0));
+    // // std::cout << mat;
+    // mat = glm::rotate(mat, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
+    // mat = glm::translate(mat, glm::vec3(0.25, 0.25, 0.0));
     // std::cout << mat;
-    // mat = glm::translate(mat, glm::vec3(1.0, 1.0, 0.0));
-    // std::cout << mat;
-    mat = glm::rotate(mat, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-    // std::cout << mat;
+    // // std::cout << mat;
 
-    GLuint loc = glGetUniformLocation(ourShader.ID, "mat");
-    // glm的矩阵是列主序，因此不需要转置
-    // 1.loc；2.矩阵个数；3.是否转置；4.真正的数据
-    glUniformMatrix4fv(loc, 1, GL_FALSE, &mat[0][0]);
+    // GLuint loc = glGetUniformLocation(ourShader.ID, "mat");
+    // // glm的矩阵是列主序，因此不需要转置
+    // // 1.loc；2.矩阵个数；3.是否转置；4.真正的数据
+    // glUniformMatrix4fv(loc, 1, GL_FALSE, &mat[0][0]);
+
+    glm::mat4 m(1.0f);
+    m = glm::scale(m, glm::vec3(1.0f) * 0.5f);
+    m = glm::translate(m, glm::vec3(1.0f));
+    std::cout << m;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -186,12 +191,24 @@ int main(int argc, char *argv[])
 
         ourShader.use();
 
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, textures[0]);
+        float s = abs((float)sin(glfwGetTime()) / 2.0f + 0.5f);
+        // 练习2 位移矩阵 * 缩放矩阵 ：以图片中心缩放
+        // glm::mat4 sMat(1.0f), tMat(1.0f);
+        // sMat = glm::scale(sMat, glm::vec3(1.0f) * s);
+        // tMat = glm::translate(tMat, glm::vec3(0.5f, -0.5f, 0));
+        // ourShader.setMat4("mat", tMat * sMat);
 
-        // glActiveTexture(GL_TEXTURE1);
-        // glBindTexture(GL_TEXTURE_2D, textures[1]);
+        glm::mat4 mat2(1.0f);
+        // 练习2 先translate后scale，效果和上面的一样；
+        // 先scale后translate，则是图片左上角不动进行缩放。因为位移也被缩放了，视觉上表现就是左上角不动
+        mat2 = glm::scale(mat2, glm::vec3(1.0f) * s);
+        mat2 = glm::translate(mat2, glm::vec3(0.5f, -0.5f, 0));
+        ourShader.setMat4("mat", mat2);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+        glm::mat4 mat1(1.0f);
+        mat1 = glm::translate(mat1, glm::vec3(-0.5f, 0.5f, 0));
+        ourShader.setMat4("mat", mat1);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
