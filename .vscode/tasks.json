@@ -12,7 +12,7 @@
                 "command": "powershell",
                 "args": [
                     "-c",
-                    "make dir=05_shader_class" // 调式之前设置目录
+                    "make dir=09_transformation" // 调式之前设置目录
                 ]
             },
             "linux": {

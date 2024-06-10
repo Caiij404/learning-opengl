@@ -18,13 +18,13 @@ std::ostream &operator<<(std::ostream &os, const glm::mat4 &matrix)
         }
         os << std::endl;
     }
-    std::cout << "----------------------------------" << std::endl;
+    os << "----------------------------------" << std::endl;
     return os;
 }
 
 std::ostream &operator<<(std::ostream &os, const glm::vec4 &v4)
 {
-    std::cout << "glm::vec4 ---- " << "X: " << v4.x << " Y: " << v4.y << " Z: " << v4.z << " W: " << v4.w << std::endl;
+    os << "glm::vec4 ---- " << "X: " << v4.x << " Y: " << v4.y << " Z: " << v4.z << " W: " << v4.w << std::endl;
 }
 
 
