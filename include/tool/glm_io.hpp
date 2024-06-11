@@ -25,11 +25,13 @@ std::ostream &operator<<(std::ostream &os, const glm::mat4 &matrix)
 std::ostream &operator<<(std::ostream &os, const glm::vec4 &v4)
 {
     os << "glm::vec4 ---- " << "X: " << v4.x << " Y: " << v4.y << " Z: " << v4.z << " W: " << v4.w << std::endl;
+    return os;
 }
 
 std::ostream &operator<<(std::ostream &os, const glm::vec3 &v3)
 {
     os << "glm::vec3 ---- " << "X: " << v3.x << " Y: " << v3.y << " Z: " << v3.z << std::endl;
+    return os;
 }
 
 #endif
