@@ -204,12 +204,24 @@ int main(int argc, char *argv[])
     ourShader.setInt("texture2", 1);
 
     glm::mat4 model(1.0f), view(1.0f), projection(1.0f);
-    model = glm::rotate(model, (float)(glfwGetTime() / 2 + 0.5) * glm::radians(50.0f), glm::vec3(0.5, 1.0, 1.0));
+    // model = glm::rotate(model, (float)(glfwGetTime() / 2 + 0.5) * glm::radians(50.0f), glm::vec3(0.5, 1.0, 1.0));
     view = glm::translate(view, glm::vec3(0, 0, -3.0));
     projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
     glm::mat4 m = projection * view * model;
     // 为什么这里第二个参数是引用，却可以传个临时变量？ 没报错，运行正常
     // ourShader.setMat4("mat", projection * view * model);
+
+    glm::vec3 cubePositions[] = {
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(2.0f, 5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3(2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f, 3.0f, -7.5f),
+        glm::vec3(1.3f, -2.0f, -2.5f),
+        glm::vec3(1.5f, 2.0f, -2.5f),
+        glm::vec3(1.5f, 0.2f, -1.5f),
+        glm::vec3(-1.3f, 1.0f, -1.5f)};
 
     while (!glfwWindowShouldClose(window))
     {
@@ -222,10 +234,18 @@ int main(int argc, char *argv[])
         ourShader.use();
 
         // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        model = glm::rotate(model, (float)glfwGetTime() * 0.005f, glm::vec3(1.0, 0.0, 0.0));
-        m = projection * view * model;
-        ourShader.setMat4("mat", m);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        for (int i = 0; i < 10; ++i)
+        {
+            // glm::mat4 t(1.0f);
+            // t = glm::translate(t, cubePositions[i]);
+            glm::mat4 t(1.0f), r(1.0f), model(1.0f);
+            r = glm::rotate(r, glm::radians(i * 20.f), glm::vec3(1.0f, 0.3f, 0.5f));
+            t = glm::translate(t, cubePositions[i]);
+            model = t * r;
+            m = projection * view * model;
+            ourShader.setMat4("mat", m);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
         glEnable(GL_DEPTH_TEST);
         glfwSwapBuffers(window);
         glfwPollEvents();
