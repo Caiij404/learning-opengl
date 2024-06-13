@@ -22,6 +22,24 @@ std::ostream &operator<<(std::ostream &os, const glm::mat4 &matrix)
     return os;
 }
 
+std::ostream &operator<<(std::ostream &os, const glm::mat3 &matrix)
+{
+    // 将矩阵转换为指向float的指针
+    const float *pMatrix = (const float *)glm::value_ptr(matrix);
+
+    for (int i = 0; i < 3; ++i)
+    {
+        for (int j = 0; j < 3; ++j)
+        {
+            float t = abs(pMatrix[j * 3 + i]) < 1e-7 ? 0 : pMatrix[j * 3 + i];
+            os << t << " ";
+        }
+        os << std::endl;
+    }
+    os << "----------------------------------" << std::endl;
+    return os;
+}
+
 std::ostream &operator<<(std::ostream &os, const glm::vec4 &v4)
 {
     os << "glm::vec4 ---- " << "X: " << v4.x << " Y: " << v4.y << " Z: " << v4.z << " W: " << v4.w << std::endl;
