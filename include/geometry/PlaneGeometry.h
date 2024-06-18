@@ -30,9 +30,9 @@ public:
                 // float x = ix * segment_width - height_half;
                 float x = ix * segment_width - width_half;
 
-                vertex.Position = glm::vec3(x, -y, 0.0f);
+                vertex.Position = glm::vec3(x, y, 0.0f);
                 vertex.Normal = glm::vec3(0.0f, 0.0f, 1.0f);
-                vertex.TexCoords = glm::vec2(ix / wSegment, 1.0f - (iy - hSegment));
+                vertex.TexCoords = glm::vec2(ix / wSegment, 1.0f - (iy / hSegment));
 
                 this->vertices.push_back(vertex);
             }
