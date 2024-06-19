@@ -1,10 +1,9 @@
-// move the cube by keyboard up down left right 
+/* // 通过projection * view * model 更新cubes的矩阵
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <tool/shader.h>
 
-#include <geometry/BoxGeometry.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -21,16 +20,6 @@ std::string Shader::dirName;
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-// glm::vec3 cameraPos(0.0f, 0.0f, 3.0f);
-// glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
-// glm::vec3 cameraUp(0.0f, 0.0f, 1.0f);
-
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
 int main(int argc, char *argv[])
 {
     Shader::dirName = argv[1];
@@ -64,7 +53,93 @@ int main(int argc, char *argv[])
 
     Shader ourShader("./shader/vertex.glsl", "./shader/fragment.glsl");
 
-    BoxGeometry box(1.0, 1.0, 1.0);
+    // 顶点数据
+    // float vertices[] = {
+    //     // ---位置---       --- 颜色 ---        --纹理坐标--
+    //     0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f,   // 右上
+    //     0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f,  // 右下
+    //     -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // 左下
+    //     -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,  // 左上
+    // };
+
+    float vertices[] = {
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, -0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
+
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+        0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        0.5f, 0.5f, 0.5f, 1.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f, 0.0f, 0.0f,
+        -0.5f, 0.5f, -0.5f, 0.0f, 1.0f};
+
+    // 索引数据
+    // unsigned int indices[] = {
+    //     0, 1, 3,
+    //     1, 2, 3};
+
+    // 创建缓冲对象
+    unsigned int vbo, ebo, vao;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
+
+    // 绑定vao
+    glBindVertexArray(vao);
+
+    // 绑定vbo
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    // 填充vbo数据
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    // 绑定ebo 填充索引数据
+    // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    // 设置顶点位置属性指针
+    // 1.location = 0；2.属性大小 vec；3.数据类型；4.是否标准化；5.步长；6.偏移
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+
+    // 设置顶点颜色属性指针
+    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+    // glEnableVertexAttribArray(1);
+
+    // 设置顶点纹理坐标属性指针
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     // ______生成纹理______
 
@@ -129,16 +204,32 @@ int main(int argc, char *argv[])
     ourShader.setInt("texture1", 0);
     ourShader.setInt("texture2", 1);
 
+    glm::vec3 cubePositions[] = {
+        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(2.0f, 5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3(2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f, 3.0f, -7.5f),
+        glm::vec3(1.3f, -2.0f, -2.5f),
+        glm::vec3(1.5f, 2.0f, -2.5f),
+        glm::vec3(1.5f, 0.2f, -1.5f),
+        glm::vec3(-1.3f, 1.0f, -1.5f)};
+
     glm::mat4 projection(1.0f), view(1.0f);
-    float fov = 45.0f;
-    projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)(SCR_HEIGHT), 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)(SCR_HEIGHT),0.1f, 100.0f);
+    vector<glm::mat4> models;
+    for(int i=0; i<10; ++i)
+    {
+        glm::mat4 m(1.0f);
+        m = glm::translate(m, cubePositions[i]);
+        float angle = 20.0f * i;
+        m = glm::rotate(m, glm::radians(angle), glm::vec3(0,0,1));
+        models.push_back(m);
+    }
 
     while (!glfwWindowShouldClose(window))
     {
-        float currentFrame = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-
         processInput(window);
 
         // 渲染指令
@@ -147,35 +238,27 @@ int main(int argc, char *argv[])
 
         ourShader.use();
 
-        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-        glm::qua<float> qu = glm::qua<float>(glm::vec3(glfwGetTime(), glfwGetTime(), glfwGetTime()));
-        glm::mat4 model = glm::mat4_cast(qu);
+        float time = glfwGetTime() * 0.3;
+        float x = sin(time) * 10.0f;
+        float z = cos(time) * 10.0f;
+        view = glm::lookAt(glm::vec3(x, 0, z), glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
 
-        glm::mat4 m = projection * view * model;
-
-        // cout << m;
-
-        // cout << "projection:" << endl
-        //      << projection;
-        // cout << "view:" << endl
-        //      << view;
-        // cout << "model:" << endl
-        //      << model;
-
-        // cout << cameraFront << " " << cameraPos << " " << cameraUp << endl;
-        // cout << cameraPos + cameraFront << endl;
-
-        ourShader.setMat4("mat", m);
-
-        glBindVertexArray(box.vao);
-        glDrawElements(GL_TRIANGLES, box.indices.size(), GL_UNSIGNED_INT, 0);
+        for (int i = 0; i < 10; ++i)
+        {
+            glm::mat4 m = projection * view * models[i];
+            ourShader.setMat4("mat", m);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
         glEnable(GL_DEPTH_TEST);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    box.dispose();
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ebo);
     glfwTerminate();
     return 0;
 }
@@ -184,36 +267,9 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-
-    float speed = static_cast<float>(2.5 * deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-    {
-        cameraPos += speed * cameraFront;
-    }
-    else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-    {
-        cameraPos -= speed * cameraFront;
-    }
-    else if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-    {
-        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * speed;
-    }
-    else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-    {
-        cameraPos += glm::normalize(glm::cross(cameraUp, cameraFront)) * speed;
-    }
-    // float cameraSpeed = static_cast<float>(2.5 * deltaTime);
-    // if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    //     cameraPos += cameraSpeed * cameraFront;
-    // if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    //     cameraPos -= cameraSpeed * cameraFront;
-    // if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    //     cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    // if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    //     cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 }
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
     glViewport(0, 0, width, height);
-}
+} */
