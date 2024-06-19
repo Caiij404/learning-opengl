@@ -1,4 +1,4 @@
-#include <glad/glad.h>
+/* #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <tool/shader.h>
@@ -6,7 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <vector>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <tool/stb_image.h>
 #include <tool/glm_io.hpp>
@@ -215,17 +215,93 @@ int main(int argc, char *argv[])
         glm::vec3(1.5f, 0.2f, -1.5f),
         glm::vec3(-1.3f, 1.0f, -1.5f)};
 
-    glm::mat4 projection(1.0f), view(1.0f);
-    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)(SCR_HEIGHT),0.1f, 100.0f);
-    vector<glm::mat4> models;
-    for(int i=0; i<10; ++i)
-    {
-        glm::mat4 m(1.0f);
-        m = glm::translate(m, cubePositions[i]);
-        float angle = 20.0f * i;
-        m = glm::rotate(m, glm::radians(angle), glm::vec3(0,0,1));
-        models.push_back(m);
-    }
+    glm::mat4 model(1.0f), view(1.0f), projection(1.0f);
+    model = glm::rotate(model, (float)(glfwGetTime() / 2 + 0.5) * glm::radians(50.0f), glm::vec3(0.5, 1.0, 1.0));
+    view = glm::translate(view, glm::vec3(0, 0, -3.0));
+    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    // glm::mat4 m = projection * view * model;
+    // 为什么这里第二个参数是引用，却可以传个临时变量？ 没报错，运行正常
+    // ourShader.setMat4("mat", projection * view * model);
+
+    // 自制相机矩阵
+    // 1.定义 up向量
+    glm::vec3 upVt(0.0f, 1.0f, 0.0f), cameraPos(0.0f, 1.0f, 3.0f), targetPos(0.0f, 0.0f, 0.0f);
+    // z
+    glm::vec3 cameraDir = glm::normalize(cameraPos - targetPos);
+    // x
+    glm::vec3 cameraRight = glm::normalize(glm::cross(upVt, cameraDir));
+    // y
+    glm::vec3 cameraUp = glm::normalize(glm::cross(cameraDir, cameraRight));
+    // 相机矩阵就由 xyz和cameraPos 组成。由于
+    glm::mat4 view1(1.0f);
+    // view1[0][0] = cameraRight.x;
+    // view1[1][0] = cameraRight.y;
+    // view1[2][0] = cameraRight.z;
+
+    // view1[0][1] = cameraUp.x;
+    // view1[1][1] = cameraUp.y;
+    // view1[2][1] = cameraUp.z;
+
+    // view1[0][2] = cameraDir.x;
+    // view1[1][2] = cameraDir.y;
+    // view1[2][2] = cameraDir.z;
+
+    // view1[0][3] = -cameraPos.x;
+    // view1[1][3] = -cameraPos.y;
+    // view1[2][3] = -cameraPos.z;
+    view1[0][0] = cameraRight.x;
+    view1[0][1] = cameraRight.y;
+    view1[0][2] = cameraRight.z;
+
+    view1[1][0] = cameraUp.x;
+    view1[1][1] = cameraUp.y;
+    view1[1][2] = cameraUp.z;
+
+    view1[2][0] = cameraDir.x;
+    view1[2][1] = cameraDir.y;
+    view1[2][2] = cameraDir.z;
+
+    view1[3][0] = cameraPos.x;
+    view1[3][1] = cameraPos.y;
+    view1[3][2] = cameraPos.z;
+
+    // std::cout << view1;
+    // std::cout << glm::inverse(view1);
+    // view1 = glm::translate()
+
+    glm::mat4 view2 = glm::lookAt(cameraPos, targetPos, upVt);
+    // std::cout << view2;
+
+    // glm::mat4 test(1.0f);
+    // test = glm::rotate(test, glm::radians(45.0f), glm::vec3(0, 0, 1));
+    // std::cout<<test;
+    // for (int i = 0; i < 4; i++)
+    // {
+    //     for (int j = 0; j < 4; j++)
+    //     {
+    //         std::cout << test[i][j] << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+
+    // glm::vec3 x(1,2,3);
+    // glm::vec3 y(4,5,6);
+    // glm::vec3 z(7,8,9);
+    // glm::mat3 tmp1(x,y,z);
+    // // std::cout<<glm::mat3(x,y,z);
+
+    // for(int i=0; i<3; i++)
+    // {
+    //     for(int j=0; j<3; j++)
+    //     {
+    //         std::cout<<tmp1[i][j] << " ";
+    //     }
+    //     std::cout<<std::endl;
+    // }
+
+    // glm::mat4 tmp(1.0f);
+    // tmp = glm::rotate(tmp, glm::radians(90.0f), glm::vec3(0,0,1));
+    // std::cout<<tmp;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -238,15 +314,17 @@ int main(int argc, char *argv[])
         ourShader.use();
 
         // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-        float time = glfwGetTime() * 0.3;
-        float x = sin(time) * 10.0f;
-        float z = cos(time) * 10.0f;
-        view = glm::lookAt(glm::vec3(x, 0, z), glm::vec3(0, 0, 0), glm::vec3(0, 0, 1));
+        model = glm::rotate(model, (float)(glfwGetTime() / 2 + 0.5) * glm::radians(50.0f), glm::vec3(0.5, 1.0, 1.0));
 
         for (int i = 0; i < 10; ++i)
         {
-            glm::mat4 m = projection * view * models[i];
+            // glm::mat4 t(1.0f);
+            // t = glm::translate(t, cubePositions[i]);
+            // glm::mat4 t(1.0f), r(1.0f), model(1.0f);
+            // r = glm::rotate(r, glm::radians(i * 20.f), glm::vec3(1.0f, 0.3f, 0.5f));
+            // t = glm::translate(t, cubePositions[i]);
+            // model = t * r;
+            glm::mat4 m = projection * view * model;
             ourShader.setMat4("mat", m);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
@@ -271,4 +349,4 @@ void processInput(GLFWwindow *window)
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
     glViewport(0, 0, width, height);
-}
+} */
