@@ -64,7 +64,8 @@ public:
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix
     glm::mat4 GetViewMatrix()
     {
-        return glm::lookAt(Position, Position + Front, Up);
+        return calculate_lookAt_Matrix(Position, Position + Front, Up);
+        // return glm::lookAt(Position, Position + Front, Up);
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
@@ -136,6 +137,43 @@ public:
             Zoom = 1.0f;
         if (Zoom >= 45.0f)
             Zoom = 45.0f;
+    }
+
+    /**
+     * @param position 相机位置
+     * @param target   目标位置
+     * @param worldUp  上向量
+     * @return 相机矩阵
+     */
+    glm::mat4 calculate_lookAt_Matrix(glm::vec3 position, glm::vec3 target, glm::vec3 worldUp)
+    {
+        // r = x, u = y, f = z;
+        glm::vec3 r, u, f;
+        f = glm::normalize(position - target);
+        r = glm::normalize(glm::cross(glm::normalize(worldUp), f));
+        u = glm::normalize(glm::cross(f, r));
+
+        // glm::mat4这个二维数组，一维存储的是矩阵的列，二维存储的是行
+        glm::mat4 mat(1.0f);
+        
+        // position
+        mat[3][0] = -position.x;
+        mat[3][1] = -position.y;
+        mat[3][2] = -position.z;
+
+        mat[0][0] = r.x;
+        mat[1][0] = r.y;
+        mat[2][0] = r.z;
+
+        mat[0][1] = u.x;
+        mat[1][1] = u.y;
+        mat[2][1] = u.z;
+
+        mat[0][2] = f.x;
+        mat[1][2] = f.y;
+        mat[2][2] = f.z;
+
+        return mat;
     }
 
 private:

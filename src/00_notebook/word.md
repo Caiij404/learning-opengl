@@ -13,3 +13,5 @@ yaw 偏航角
 roll 滚转角
 
 sensitivity 灵敏度
+
+implement n.工具; v.实现,生效
