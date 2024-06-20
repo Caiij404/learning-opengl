@@ -1,17 +1,18 @@
+/* // move the cube by keyboard up down left right 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <tool/shader.h>
 
+#include <geometry/BoxGeometry.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <geometry/BoxGeometry.h>
-
+#include <vector>
 #define STB_IMAGE_IMPLEMENTATION
 #include <tool/stb_image.h>
 #include <tool/glm_io.hpp>
-#include <tool/gui.h>
+
 using namespace std;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -19,6 +20,10 @@ void processInput(GLFWwindow *window);
 std::string Shader::dirName;
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+
+// glm::vec3 cameraPos(0.0f, 0.0f, 3.0f);
+// glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
+// glm::vec3 cameraUp(0.0f, 0.0f, 1.0f);
 
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -50,20 +55,6 @@ int main(int argc, char *argv[])
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
-
-    const char *glsl_version = "#version 330";
-
-    // ---------------------
-    // 创建imgui上下文
-    ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
-    (void)io;
-    // 设置样式
-    ImGui::StyleColorsDark();
-    // 设置平台和渲染器
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init(glsl_version);
-
     // 设置视口
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     glEnable(GL_PROGRAM_POINT_SIZE);
@@ -73,7 +64,8 @@ int main(int argc, char *argv[])
 
     Shader ourShader("./shader/vertex.glsl", "./shader/fragment.glsl");
 
-    BoxGeometry box(1.0, 1.0, 1.0, 1.0);
+    BoxGeometry box(1.0, 1.0, 1.0);
+
     // ______生成纹理______
 
     // 纹理对象
@@ -137,40 +129,20 @@ int main(int argc, char *argv[])
     ourShader.setInt("texture1", 0);
     ourShader.setInt("texture2", 1);
 
-    // glm::mat4 model(1.0f), view(1.0f), projection(1.0f);
-    // // model = glm::rotate(model, (float)(glfwGetTime() / 2 + 0.5) * glm::radians(50.0f), glm::vec3(0.5, 1.0, 1.0));
-    // view = glm::translate(view, glm::vec3(0, 0, -3.0));
-    // projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    // glm::mat4 m = projection * view * model;
-    // // 为什么这里第二个参数是引用，却可以传个临时变量？ 没报错，运行正常
-    // // ourShader.setMat4("mat", projection * view * model);
-
     glm::mat4 projection(1.0f), view(1.0f);
     float fov = 45.0f;
     projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)(SCR_HEIGHT), 0.1f, 100.0f);
 
-    float f = 0.0f;
-    ImVec4 clear_color = ImVec4(0.21, 0.3, 0.21, 1.0);
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+
         processInput(window);
 
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        ImGui::Begin("imgui");
-        ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-        ImGui::ColorEdit3("clear color", (float *)&clear_color);
-        ImGui::End();
-        cout << "f = " << f << endl;
         // 渲染指令
-        // glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
-        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+        glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         ourShader.use();
@@ -181,16 +153,24 @@ int main(int argc, char *argv[])
         glm::mat4 model = glm::mat4_cast(qu);
 
         glm::mat4 m = projection * view * model;
+
+        // cout << m;
+
+        // cout << "projection:" << endl
+        //      << projection;
+        // cout << "view:" << endl
+        //      << view;
+        // cout << "model:" << endl
+        //      << model;
+
+        // cout << cameraFront << " " << cameraPos << " " << cameraUp << endl;
+        // cout << cameraPos + cameraFront << endl;
+
         ourShader.setMat4("mat", m);
 
         glBindVertexArray(box.vao);
         glDrawElements(GL_TRIANGLES, box.indices.size(), GL_UNSIGNED_INT, 0);
         glEnable(GL_DEPTH_TEST);
-
-        // 渲染 gui
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -227,4 +207,4 @@ void processInput(GLFWwindow *window)
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
     glViewport(0, 0, width, height);
-}
+} */

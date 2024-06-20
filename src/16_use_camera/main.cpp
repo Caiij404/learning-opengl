@@ -1,4 +1,4 @@
-// move the cube by keyboard up down left right 
+// 鼠标移动视角 滚轮缩放视角
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -17,13 +17,11 @@ using namespace std;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
+void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 std::string Shader::dirName;
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-
-// glm::vec3 cameraPos(0.0f, 0.0f, 3.0f);
-// glm::vec3 cameraFront(0.0f, 0.0f, -1.0f);
-// glm::vec3 cameraUp(0.0f, 0.0f, 1.0f);
 
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -31,6 +29,15 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+bool firstMouse = true;
+float yaw = -90.0f;
+float pitch = 0.0f;
+float lastX = (float)SCR_WIDTH / 2.0f;
+float lastY = (float)SCR_HEIGHT / 2.0f;
+float fov = 45.0f;
+float sensitivity = 0.1;
+
 int main(int argc, char *argv[])
 {
     Shader::dirName = argv[1];
@@ -61,6 +68,12 @@ int main(int argc, char *argv[])
 
     // 注册窗口变化监听
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+
+    // 告诉GLFW捕捉鼠标
+    // tell GLFW to capture our mouse
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     Shader ourShader("./shader/vertex.glsl", "./shader/fragment.glsl");
 
@@ -130,8 +143,6 @@ int main(int argc, char *argv[])
     ourShader.setInt("texture2", 1);
 
     glm::mat4 projection(1.0f), view(1.0f);
-    float fov = 45.0f;
-    projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)(SCR_HEIGHT), 0.1f, 100.0f);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -147,6 +158,7 @@ int main(int argc, char *argv[])
 
         ourShader.use();
 
+        projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)(SCR_HEIGHT), 0.1f, 100.0f);
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
         glm::qua<float> qu = glm::qua<float>(glm::vec3(glfwGetTime(), glfwGetTime(), glfwGetTime()));
@@ -202,15 +214,63 @@ void processInput(GLFWwindow *window)
     {
         cameraPos += glm::normalize(glm::cross(cameraUp, cameraFront)) * speed;
     }
-    // float cameraSpeed = static_cast<float>(2.5 * deltaTime);
-    // if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    //     cameraPos += cameraSpeed * cameraFront;
-    // if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    //     cameraPos -= cameraSpeed * cameraFront;
-    // if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    //     cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    // if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    //     cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
+
+void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    // make sure that when pitch is out of bounds, screen doesn't get flipped
+    if (pitch > 89.0f)
+    {
+        pitch = 89.0f;
+    }
+    if (pitch < -89.0f)
+    {
+        pitch = -89.0f;
+    }
+    cout<<yaw << " "<< pitch <<endl;
+
+    glm::vec3 front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = cos(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(front);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    if(fov >= 1.0f && fov <= 45.0f)
+    {
+        fov -= yoffset;
+    }
+    if(fov <= 1.0f)
+    {
+        fov = 1.0f;
+    }
+    if(fov >= 45.0f)
+    {
+        fov = 45.0f;
+    }
 }
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
