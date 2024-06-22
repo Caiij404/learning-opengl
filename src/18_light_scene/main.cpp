@@ -21,8 +21,8 @@ void processInput(GLFWwindow *window);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 std::string Shader::dirName;
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1600;
+const unsigned int SCR_HEIGHT = 1200;
 
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -166,21 +166,20 @@ int main(int argc, char *argv[])
 
         // 前面忘了给camera.Zoom加上radians方法，导致滚轮缩放异常
         projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)(SCR_HEIGHT), 0.1f, 100.0f);
-        // view = camera.GetViewMatrix();
-        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        view = camera.GetViewMatrix();
+        // view = glm::lookAt(cameraPos, glm::vec3(0,0,0), cameraUp);
 
         glm::mat4 boxModel(1.0f);
         glm::mat4 mat1 = projection * view * boxModel;
         // glm::qua<float> qu = glm::qua<float>(glm::vec3(glfwGetTime(), glfwGetTime(), glfwGetTime()));
         // glm::mat4 model = glm::mat4_cast(qu);
-
         boxShader.use();
         boxShader.setMat4("mat", mat1);
         glBindVertexArray(box.vao);
         glDrawElements(GL_TRIANGLES, box.indices.size(), GL_UNSIGNED_INT, 0);
 
         glm::mat4 lightModel(1.0f);
-        lightModel = glm::translate(lightModel, glm::vec3(0.0f, 3.0f, 0.0f));
+        lightModel = glm::translate(lightModel, glm::vec3(0.0f, 1.0f, 0.0f));
         glm::mat4 mat2 = projection * view * lightModel;
         lightShader.use();
         lightShader.setMat4("mat", mat2);
