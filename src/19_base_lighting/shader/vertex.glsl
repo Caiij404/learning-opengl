@@ -8,12 +8,16 @@ out vec3 fragPos;
 
 // 注意要初始化！！！！
 // 不然如果不传入矩阵，gl_Position就失效了
-uniform mat4 mat = mat4(1.0);
+// uniform mat4 mat = mat4(1.0);
+
+uniform mat4 projection = mat4(1.0);
+uniform mat4 view = mat4(1.0);
 uniform mat4 model = mat4(1.0);
 
 void main() {
-    gl_Position = mat * vec4(aPos, 1.0);
-    vertexNormal = aNormal;
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    vertexNormal = mat3(transpose(inverse(model))) * aNormal;
+
     fragPos = vec3(model * vec4(aPos, 1.0));
     
 }

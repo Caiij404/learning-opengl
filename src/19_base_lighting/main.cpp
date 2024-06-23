@@ -24,7 +24,7 @@ std::string Shader::dirName;
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 1200;
 
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, -4.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -39,6 +39,8 @@ float lastY = (float)SCR_HEIGHT / 2.0f;
 float fov = 45.0f;
 float sensitivity = 0.1;
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+
+bool pause = false;
 
 int main(int argc, char *argv[])
 {
@@ -81,7 +83,8 @@ int main(int argc, char *argv[])
 
     Shader boxShader("./shader/vertex.glsl", "./shader/boxFragment.glsl");
     Shader lightShader("./shader/vertex.glsl", "./shader/lightFragment.glsl");
-    BoxGeometry box(0.5, 0.5, 0.5);
+    float t = 2.5;
+    BoxGeometry box(0.5 * t, 0.5 * t, 0.5 * t);
     BoxGeometry light(0.2, 0.2, 0.2);
 
     {
@@ -148,7 +151,7 @@ int main(int argc, char *argv[])
         // boxShader.setInt("texture1", 0);
         // boxShader.setInt("texture2", 1);
     }
-    glm::vec3 lightPosition(1.0f, 1.0f, -1.0f);
+    glm::vec3 lightPosition(0.5f, 2.0f, -1.0f);
     glm::mat4 lightModel(1.0f);
     lightModel = glm::translate(lightModel, lightPosition);
     lightShader.use();
@@ -159,8 +162,10 @@ int main(int argc, char *argv[])
     boxShader.setVec3("lightColor", glm::vec3(1.0f));
     boxShader.setVec3("objColor", glm::vec3(1.0f, 0.5f, 0.31f));
     boxShader.setVec3("lightPos", lightPosition);
+    boxShader.setVec3("viewPos", camera.Position);
 
     glm::mat4 projection(1.0f), view(1.0f);
+    glm::mat4 lastBoxModel(1.0f);
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -178,19 +183,28 @@ int main(int argc, char *argv[])
         // view = glm::lookAt(cameraPos, glm::vec3(0,0,0), cameraUp);
 
         glm::mat4 boxModel(1.0f);
-        // boxModel = glm::translate(boxModel, glm::vec3(-0.3, 0, 0));
-        glm::mat4 mat1 = projection * view * boxModel;
-        // glm::qua<float> qu = glm::qua<float>(glm::vec3(glfwGetTime(), glfwGetTime(), glfwGetTime()));
-        // glm::mat4 model = glm::mat4_cast(qu);
+        glm::qua<float> qu = glm::qua<float>(glm::vec3(glfwGetTime(), glfwGetTime(), glfwGetTime()));
+        if (pause)
+        {
+            boxModel = lastBoxModel;
+        }
+        else
+        {
+            boxModel = glm::mat4_cast(qu);
+            lastBoxModel = boxModel;
+        }
         boxShader.use();
-        boxShader.setMat4("mat", mat1);
+        boxShader.setMat4("projection", projection);
+        boxShader.setMat4("view", view);
         boxShader.setMat4("model", boxModel);
         glBindVertexArray(box.vao);
         glDrawElements(GL_TRIANGLES, box.indices.size(), GL_UNSIGNED_INT, 0);
 
         glm::mat4 mat2 = projection * view * lightModel;
         lightShader.use();
-        lightShader.setMat4("mat", mat2);
+        lightShader.setMat4("projection", projection);
+        lightShader.setMat4("view", view);
+        lightShader.setMat4("model", lightModel);
         glBindVertexArray(light.vao);
         glDrawElements(GL_TRIANGLES, box.indices.size(), GL_UNSIGNED_INT, 0);
 
@@ -208,6 +222,11 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    {
+        pause = !pause;
+    }
 
     camera.ProcessKeyboard(deltaTime);
 }
