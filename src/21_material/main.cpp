@@ -13,13 +13,12 @@
 #include <tool/stb_image.h>
 #include <tool/glm_io.hpp>
 #include <tool/camera.h>
+#include <geometry/SphereGeometry.h>
 
 using namespace std;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
-void mouse_callback(GLFWwindow *window, double xpos, double ypos);
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 std::string Shader::dirName;
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 1200;
@@ -38,9 +37,6 @@ float lastX = (float)SCR_WIDTH / 2.0f;
 float lastY = (float)SCR_HEIGHT / 2.0f;
 float fov = 45.0f;
 float sensitivity = 0.1;
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-
-bool pause = false;
 
 int main(int argc, char *argv[])
 {
@@ -70,8 +66,6 @@ int main(int argc, char *argv[])
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     glEnable(GL_PROGRAM_POINT_SIZE);
 
-    camera.window = window;
-
     // 注册窗口变化监听
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -79,15 +73,18 @@ int main(int argc, char *argv[])
     Shader lightShader("./shader/vertex.glsl", "./shader/lightFragment.glsl");
     float t = 2.5;
     BoxGeometry box(0.5 * t, 0.5 * t, 0.5 * t);
-    BoxGeometry light(0.2, 0.2, 0.2);
+    // BoxGeometry light(0.2, 0.2, 0.2);
+    SphereGeometry light(0.2f,16,16);
 
-    glm::vec3 lightPosition(0.5f, 2.0f, -1.0f);
+    glm::vec3 lightPosition(2,0,2);
     glm::mat4 lightModel(1.0f);
     lightModel = glm::translate(lightModel, lightPosition);
 
     glm::mat4 boxModel(1.0f);
-    glm::vec3 boxPosition(0, 4, 0);
-    boxModel = glm::translate(boxModel, boxPosition);
+    glm::vec3 boxPosition(0, -2, 0);
+    glm::mat4 tMat = glm::translate(glm::mat4(1.0), boxPosition);
+    glm::mat4 rMat = glm::rotate(glm::mat4(1.0f), glm::radians(-30.0f),glm::vec3(0,0,1));
+    boxModel = tMat * rMat;
 
     boxShader.use();
     boxShader.setVec3("light0.ambient", glm::vec3(0.2, 0.2, 0.2));
@@ -149,24 +146,6 @@ void processInput(GLFWwindow *window)
     // }
 
     // camera.ProcessKeyboard(deltaTime);
-}
-
-void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
-{
-    float xpos = static_cast<float>(xposIn);
-    float ypos = static_cast<float>(yposIn);
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
-
-    lastX = xpos;
-    lastY = ypos;
-
-    camera.ProcessMouseMovement(xoffset, yoffset);
-}
-
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
-{
-    camera.ProcessMouseScroll(yoffset);
 }
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
