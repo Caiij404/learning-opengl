@@ -27,3 +27,5 @@ map 贴图
 opaque type 不透明类型
 
 opaque 不透明的，浑浊的，不透光的
+
+Emission Map 放射光贴图
