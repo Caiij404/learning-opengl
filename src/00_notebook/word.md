@@ -29,3 +29,9 @@ opaque type 不透明类型
 opaque 不透明的，浑浊的，不透光的
 
 Emission Map 放射光贴图
+
+Attenuation 衰减
+
+constant 常数；不变的
+
+quadratic 二次项；平方的
