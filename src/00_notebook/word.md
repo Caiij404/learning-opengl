@@ -35,3 +35,7 @@ Attenuation 衰减
 constant 常数；不变的
 
 quadratic 二次项；平方的
+
+cutoff 截至的，中断的
+
+cutoff angle 切光角
