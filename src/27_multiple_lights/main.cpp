@@ -25,6 +25,45 @@ struct Material
     float shininess;
 };
 
+struct DirLight
+{
+    glm::vec3 direction;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+};
+
+struct PointLight
+{
+    glm::vec3 position;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
+};
+
+#define POINT_LIGHT_NUM 4
+
+struct SpotLight
+{
+    glm::vec3 position;
+    glm::vec3 direction;
+
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
+
+    float cutoff;
+    float outerCutoff;
+};
+
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
 GLuint loadTexture(const char *path);
@@ -108,8 +147,6 @@ int main(int argc, char *argv[])
 
     GLuint diffuseMap = loadTexture("./static/texture/container2.png");
     GLuint specularMap = loadTexture("./static/texture/container2_specular.png");
-    GLuint specularColorMap = loadTexture("./static/texture/lighting_maps_specular_color.png");
-    // GLuint emissionMap = loadTexture("./static/texture/matrix.jpg");
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, diffuseMap);
@@ -117,13 +154,82 @@ int main(int argc, char *argv[])
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, specularMap);
 
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, specularColorMap);
+    DirLight dLight;
+    dLight.direction = glm::vec3(1.0f, 1.0f, 1.0f);
+    dLight.ambient = glm::vec3(0.3f);
+    dLight.diffuse = glm::vec3(0.65f);
+    dLight.specular = glm::vec3(1.0f);
+
+    PointLight pLights[POINT_LIGHT_NUM];
+    for (int i = 0; i < POINT_LIGHT_NUM; ++i)
+    {
+        pLights[i].ambient = glm::vec3(0.2f);
+        pLights[i].diffuse = glm::vec3(0.5f);
+        pLights[i].specular = glm::vec3(1.0f);
+        pLights[i].constant = 1.0f;
+        pLights[i].linear = 0.09f;
+        pLights[i].quadratic = 0.032f;
+        glm::vec3 pos(0.0f);
+        switch (i)
+        {
+        case 0:
+            pos = glm::vec3(2.0f, -3.0f, 2.0f);
+            break;
+        case 1:
+            pos = glm::vec3(2.0f, 3.0f, 4.0f);
+            break;
+        case 2:
+            pos = glm::vec3(-2.0f, 3.0f, 2.0f);
+            break;
+        case 3:
+            pos = glm::vec3(-2.0f, -3.0f, 4.0f);
+            break;
+        }
+        pLights[i].position = pos;
+    }
+
+    SpotLight sLight;
+    sLight.ambient = glm::vec3(0.2f);
+    sLight.diffuse = glm::vec3(0.5f);
+    sLight.specular = glm::vec3(1.0f);
+    sLight.constant = 1.0f;
+    sLight.linear = 0.09f;
+    sLight.quadratic = 0.032f;
+    sLight.cutoff = cos(glm::radians(12.5f));
+    sLight.outerCutoff = cos(glm::radians(17.5f));
+    sLight.position = cameraPos;
+    sLight.direction = cameraFront;
 
     boxShader.use();
     boxShader.setInt("material0.diffuse", 0);
     boxShader.setInt("material0.specular", 1);
-    boxShader.setInt("material0.specularColor", 2);
+
+    boxShader.setVec3("dirLight.direction", dLight.direction);
+    boxShader.setVec3("dirLight.ambient", dLight.ambient);
+    boxShader.setVec3("dirLight.diffuse", dLight.diffuse);
+    boxShader.setVec3("dirLight.specular", dLight.specular);
+
+    for (int i = 0; i < POINT_LIGHT_NUM; ++i)
+    {
+        boxShader.setVec3("pLight[" + std::to_string(i) + "].ambient", pLights[i].ambient);
+        boxShader.setVec3("pLight[" + std::to_string(i) + "].diffuse", pLights[i].diffuse);
+        boxShader.setVec3("pLight[" + std::to_string(i) + "].specular", pLights[i].specular);
+        boxShader.setVec3("pLight[" + std::to_string(i) + "].position", pLights[i].position);
+        boxShader.setFloat("pLight[" + std::to_string(i) + "].constant", pLights[i].constant);
+        boxShader.setFloat("pLight[" + std::to_string(i) + "].linear", pLights[i].linear);
+        boxShader.setFloat("pLight[" + std::to_string(i) + "].quadratic", pLights[i].quadratic);
+    }
+
+    boxShader.setVec3("sLight.ambient", sLight.ambient);
+    boxShader.setVec3("sLight.diffuse", sLight.diffuse);
+    boxShader.setVec3("sLight.specular", sLight.specular);
+    boxShader.setVec3("sLight.position", sLight.position);
+    boxShader.setVec3("sLight.direction", sLight.direction);
+    boxShader.setFloat("sLight.constant", sLight.constant);
+    boxShader.setFloat("sLight.linear", sLight.linear);
+    boxShader.setFloat("sLight.quadratic", sLight.quadratic);
+    boxShader.setFloat("sLight.cutoff", sLight.cutoff);
+    boxShader.setFloat("sLight.outerCutoff", sLight.outerCutoff);
 
     glm::mat4 projection(1.0f), view(1.0f);
     projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -161,7 +267,7 @@ int main(int argc, char *argv[])
     float lightDiffuse = 0.5f;
     float lightSpecular = 1.0f;
     float materialShininess = 32.0f;
- 
+
     float x = 5.0f;
     float y = 0.0f;
     float z = 3.0f;

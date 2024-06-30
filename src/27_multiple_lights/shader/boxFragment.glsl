@@ -25,7 +25,7 @@ struct DirLight {
     vec3 diffuse;
     vec3 specular;
 };
-uniform DirLight dirLight;
+uniform DirLight dLight;
 
 /**
 *   计算定向光
@@ -59,7 +59,7 @@ struct PointLight {
     float quadratic;
 };
 #define POINT_LIGHT_NUM 4
-uniform PointLight pointLight[POINT_LIGHT_NUM];
+uniform PointLight pLight[POINT_LIGHT_NUM];
 
 /**
 *   计算点光源
@@ -103,7 +103,7 @@ struct SpotLight {
     float cutoff;
     float outerCutoff;
 };
-uniform SpotLight spotLight;
+uniform SpotLight sLight;
 
 vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 frag2View, vec3 fragPos) {
     vec3 diffuseMap = vec3(texture(material0.diffuse, texCoord));
@@ -139,15 +139,15 @@ void main() {
     vec3 frag2View = normalize(viewPos - fragPos);
 
     // phase 1: directional lighting
-    vec3 result = calcDirLight(dirLight, norm, frag2View);
+    vec3 result = calcDirLight(dLight, norm, frag2View);
 
     // phase 2: point lightings
     for(int i = 0; i < POINT_LIGHT_NUM; ++i) {
-        result += calcPointLight(pointLight[i], norm, frag2View, fragPos);
+        result += calcPointLight(pLight[i], norm, frag2View, fragPos);
     }
 
     // phase 3: spot lighting
-    result += calcSpotLight(spotLight, norm, frag2View, fragPos);
+    result += calcSpotLight(sLight, norm, frag2View, fragPos);
     
     result = result * vec3(objColor);
     
