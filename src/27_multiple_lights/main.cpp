@@ -135,7 +135,12 @@ int main(int argc, char *argv[])
     Shader boxShader("./shader/vertex.glsl", "./shader/boxFragment.glsl");
     Shader lightShader("./shader/vertex.glsl", "./shader/lightFragment.glsl");
     float t = 1.0;
-    SphereGeometry light(0.1f, 24.0f, 24.0f);
+    SphereGeometry dLightGeo(0.1f, 24.0f, 24.0f);
+    SphereGeometry pLightGeo[POINT_LIGHT_NUM];
+    for (int i = 0; i < POINT_LIGHT_NUM; ++i)
+    {
+        pLightGeo[i] = SphereGeometry(0.1f, 24.0f, 24.0f);
+    }
 
     vector<BoxGeometry> boxes;
     int boxNum = 9;
@@ -292,12 +297,24 @@ int main(int argc, char *argv[])
         glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        lightPosition = glm::vec3(x, y, z);
+        // draw light geo
+        // direction light
         lightShader.use();
+        lightPosition = glm::vec3(x, y, z);
         glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), lightPosition);
         lightShader.setMat4("model", lightModel);
-        glBindVertexArray(light.vao);
-        glDrawElements(GL_TRIANGLES, light.indices.size(), GL_UNSIGNED_INT, 0);
+        glBindVertexArray(dLightGeo.vao);
+        glDrawElements(GL_TRIANGLES, dLightGeo.indices.size(), GL_UNSIGNED_INT, 0);
+
+        // point lights
+        for (int i = 0; i < POINT_LIGHT_NUM; ++i)
+        {
+            lightPosition = pLights[i].position;
+            lightModel = glm::translate(glm::mat4(1.0f), lightPosition);
+            lightShader.setMat4("model", lightModel);
+            glBindVertexArray(pLightGeo[i].vao);
+            glDrawElements(GL_TRIANGLES, pLightGeo[i].indices.size(), GL_UNSIGNED_INT, 0);
+        }
 
         boxShader.use();
         boxShader.setVec3("light0.ambient", glm::vec3(lightAmbient, lightAmbient, lightAmbient));
@@ -328,8 +345,11 @@ int main(int argc, char *argv[])
         glfwPollEvents();
     }
 
-    light.dispose();
-    // box.dispose();
+    dLightGeo.dispose();
+    for (int i = 0; i < POINT_LIGHT_NUM; ++i)
+    {
+        pLightGeo[i].dispose();
+    }
     for (int i = 0; i < boxNum; ++i)
     {
         boxes[i].dispose();

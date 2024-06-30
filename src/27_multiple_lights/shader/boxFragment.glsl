@@ -77,7 +77,7 @@ vec3 calcPointLight(PointLight light, vec3 normal, vec3 frag2View, vec3 fragPos)
     vec3 diffuse = light.diffuse * diffuseMap * diff;
 
     vec3 reflectDir = reflect(-frag2Light, normal);
-    float spec = pow(max(dot(reflectDir, frag2View), 0.0), light.shininess);
+    float spec = pow(max(dot(reflectDir, frag2View), 0.0), material0.shininess);
     vec3 specular = light.specular * vec3(texture(material0.specular, texCoord)) * spec;
 
     ambient *= attenuation;
