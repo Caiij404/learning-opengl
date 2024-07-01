@@ -65,13 +65,17 @@ struct SpotLight
 };
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
+void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 GLuint loadTexture(const char *path);
 std::string Shader::dirName;
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 1200;
 
-glm::vec3 cameraPos = glm::vec3(0.0f, -6.0f, 8.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, -2.0f, 4.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -89,6 +93,9 @@ glm::vec3 boxPosition[] = {
     glm::vec3(1.0, -1.0, 0.0),
 };
 
+float lastX = (float)SCR_WIDTH / 2.0f;
+float lastY = (float)SCR_HEIGHT / 2.0f;
+Camera camera(cameraPos, cameraUp);
 int main(int argc, char *argv[])
 {
     Shader::dirName = argv[1];
@@ -114,6 +121,11 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    // 注册窗口变化监听
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+
     const char *glsl_version = "#version 330";
     // 创建imgui上下文
     ImGui::CreateContext();
@@ -128,9 +140,6 @@ int main(int argc, char *argv[])
     // 设置视口
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     glEnable(GL_PROGRAM_POINT_SIZE);
-
-    // 注册窗口变化监听
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     Shader boxShader("./shader/vertex.glsl", "./shader/boxFragment.glsl");
     Shader lightShader("./shader/vertex.glsl", "./shader/lightFragment.glsl");
@@ -161,19 +170,19 @@ int main(int argc, char *argv[])
 
     DirLight dLight;
     dLight.direction = glm::vec3(1.0f, 1.0f, 1.0f);
-    dLight.ambient = glm::vec3(0.3f);
-    dLight.diffuse = glm::vec3(0.65f);
+    dLight.ambient = glm::vec3(0.01f);
+    dLight.diffuse = glm::vec3(0.2f);
     dLight.specular = glm::vec3(1.0f);
 
     PointLight pLights[POINT_LIGHT_NUM];
     for (int i = 0; i < POINT_LIGHT_NUM; ++i)
     {
-        pLights[i].ambient = glm::vec3(0.2f);
-        pLights[i].diffuse = glm::vec3(0.5f);
+        pLights[i].ambient = glm::vec3(0.01f);
+        pLights[i].diffuse = glm::vec3(0.2f);
         pLights[i].specular = glm::vec3(1.0f);
         pLights[i].constant = 1.0f;
         pLights[i].linear = 0.09f;
-        pLights[i].quadratic = 0.032f;
+        pLights[i].quadratic = 0.032f; 
         glm::vec3 pos(0.0f);
         switch (i)
         {
@@ -181,10 +190,10 @@ int main(int argc, char *argv[])
             pos = glm::vec3(2.0f, -3.0f, 2.0f);
             break;
         case 1:
-            pos = glm::vec3(2.0f, 3.0f, 4.0f);
+            pos = glm::vec3(2.0f, 3.0f, -4.0f);
             break;
         case 2:
-            pos = glm::vec3(-2.0f, 3.0f, 2.0f);
+            pos = glm::vec3(-2.0f, 3.0f, -2.0f);
             break;
         case 3:
             pos = glm::vec3(-2.0f, -3.0f, 4.0f);
@@ -194,25 +203,25 @@ int main(int argc, char *argv[])
     }
 
     SpotLight sLight;
-    sLight.ambient = glm::vec3(0.2f);
-    sLight.diffuse = glm::vec3(0.5f);
+    sLight.ambient = glm::vec3(0.0f);
+    sLight.diffuse = glm::vec3(1.0f);
     sLight.specular = glm::vec3(1.0f);
     sLight.constant = 1.0f;
-    sLight.linear = 0.09f;
+    sLight.linear = 0.09f;  
     sLight.quadratic = 0.032f;
     sLight.cutoff = cos(glm::radians(12.5f));
     sLight.outerCutoff = cos(glm::radians(17.5f));
-    sLight.position = cameraPos;
-    sLight.direction = cameraFront;
+    sLight.position = camera.Position;
+    sLight.direction = camera.Front;
 
     boxShader.use();
     boxShader.setInt("material0.diffuse", 0);
     boxShader.setInt("material0.specular", 1);
 
-    boxShader.setVec3("dirLight.direction", dLight.direction);
-    boxShader.setVec3("dirLight.ambient", dLight.ambient);
-    boxShader.setVec3("dirLight.diffuse", dLight.diffuse);
-    boxShader.setVec3("dirLight.specular", dLight.specular);
+    boxShader.setVec3("dLight.direction", dLight.direction);
+    boxShader.setVec3("dLight.ambient", dLight.ambient);
+    boxShader.setVec3("dLight.diffuse", dLight.diffuse);
+    boxShader.setVec3("dLight.specular", dLight.specular);
 
     for (int i = 0; i < POINT_LIGHT_NUM; ++i)
     {
@@ -237,25 +246,8 @@ int main(int argc, char *argv[])
     boxShader.setFloat("sLight.outerCutoff", sLight.outerCutoff);
 
     glm::mat4 projection(1.0f), view(1.0f);
-    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    view = glm::lookAt(cameraPos, glm::vec3(0.0f), glm::vec3(0, 0, 1));
-
-    // lightShader
-    glm::vec3 lightPosition(5.0f, 0.0f, 3.0f);
-    glm::mat4 lightModel(1.0f);
-    lightModel = glm::translate(glm::mat4(1.0f), lightPosition);
-    lightShader.use();
-    lightShader.setMat4("projection", projection);
-    lightShader.setMat4("view", view);
-    lightShader.setMat4("model", lightModel);
-
-    boxShader.use();
-    boxShader.setVec3("light0.ambient", glm::vec3(0.2, 0.2, 0.2));
-    boxShader.setVec3("light0.diffuse", glm::vec3(0.5, 0.5, 0.5));
-    boxShader.setVec3("light0.specular", glm::vec3(1.0));
-    boxShader.setVec4("light0.position", glm::vec4(lightPosition, 1.0f));
-    boxShader.setFloat("light0.cutoff", cos(glm::radians(12.5f)));
-    boxShader.setFloat("light0.outerCutoff", cos(glm::radians(17.5f)));
+    projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    view = camera.GetViewMatrix();
 
     Material material;
     material.ambient = glm::vec3(1.0f, 0.5f, 0.31f);
@@ -264,32 +256,19 @@ int main(int argc, char *argv[])
     material.shininess = 32.0f;
     boxShader.setFloat("material0.shininess", material.shininess);
     // 开始时漏了传相机位置给boxFragment，就导致镜面光在box位于光源和相机之间的情况下，才显示，很奇怪的现象。
-    boxShader.setVec3("viewPos", cameraPos);
+    boxShader.setVec3("viewPos", camera.Position);
     boxShader.setMat4("projection", projection);
     boxShader.setMat4("view", view);
 
-    float lightAmbient = 0.2f;
-    float lightDiffuse = 0.5f;
-    float lightSpecular = 1.0f;
-    float materialShininess = 32.0f;
+    // lightShader
+    glm::vec3 dLightPosition(5.0f, 0.0f, 3.0f);
+    glm::mat4 lightModel(1.0f);
 
-    float x = 5.0f;
-    float y = 0.0f;
-    float z = 3.0f;
     while (!glfwWindowShouldClose(window))
     {
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        ImGui::Begin("Light_Controls");
-        ImGui::SliderFloat("ambientL", &lightAmbient, 0.0f, 1.0f);
-        ImGui::SliderFloat("diffuseL", &lightDiffuse, 0.0f, 1.0f);
-        ImGui::SliderFloat("specularL", &lightSpecular, 0.0f, 1.0f);
-        ImGui::SliderFloat("shininessM", &materialShininess, 0.0f, 256.0f);
-        ImGui::SliderFloat("X", &x, -10.0f, 10.0f);
-        ImGui::SliderFloat("Y", &y, -10.0f, 10.0f);
-        ImGui::SliderFloat("Z", &z, -10.0f, 10.0f);
-        ImGui::End();
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
 
         processInput(window);
 
@@ -297,11 +276,15 @@ int main(int argc, char *argv[])
         glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        view = camera.GetViewMatrix();
+
         // draw light geo
         // direction light
         lightShader.use();
-        lightPosition = glm::vec3(x, y, z);
-        glm::mat4 lightModel = glm::translate(glm::mat4(1.0f), lightPosition);
+        lightShader.setMat4("projection", projection);
+        lightShader.setMat4("view", view);
+        lightModel = glm::translate(glm::mat4(1.0f), dLightPosition);
         lightShader.setMat4("model", lightModel);
         glBindVertexArray(dLightGeo.vao);
         glDrawElements(GL_TRIANGLES, dLightGeo.indices.size(), GL_UNSIGNED_INT, 0);
@@ -309,19 +292,18 @@ int main(int argc, char *argv[])
         // point lights
         for (int i = 0; i < POINT_LIGHT_NUM; ++i)
         {
-            lightPosition = pLights[i].position;
-            lightModel = glm::translate(glm::mat4(1.0f), lightPosition);
+            lightModel = glm::translate(glm::mat4(1.0f), pLights[i].position);
             lightShader.setMat4("model", lightModel);
             glBindVertexArray(pLightGeo[i].vao);
             glDrawElements(GL_TRIANGLES, pLightGeo[i].indices.size(), GL_UNSIGNED_INT, 0);
         }
 
         boxShader.use();
-        boxShader.setVec3("light0.ambient", glm::vec3(lightAmbient, lightAmbient, lightAmbient));
-        boxShader.setVec3("light0.diffuse", glm::vec3(lightDiffuse, lightDiffuse, lightDiffuse));
-        boxShader.setVec3("light0.specular", glm::vec3(lightSpecular, lightSpecular, lightSpecular));
-        boxShader.setVec4("light0.position", glm::vec4(lightPosition, 1.0));
-        boxShader.setFloat("material0.shininess", materialShininess);
+        boxShader.setMat4("view", view);
+        boxShader.setMat4("projection", projection);
+        boxShader.setVec3("viewPos", camera.Position);
+        boxShader.setVec3("sLight.direction", camera.Front);
+        boxShader.setVec3("sLight.position", camera.Position);
 
         for (int i = 0; i < boxNum; ++i)
         {
@@ -335,10 +317,6 @@ int main(int argc, char *argv[])
             glBindVertexArray(box.vao);
             glDrawElements(GL_TRIANGLES, box.indices.size(), GL_UNSIGNED_INT, 0);
         }
-
-        // 渲染 gui
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glEnable(GL_DEPTH_TEST);
         glfwSwapBuffers(window);
@@ -362,6 +340,33 @@ void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(yoffset);
 }
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
