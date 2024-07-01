@@ -5,6 +5,8 @@ in vec3 vertexNormal;
 in vec3 fragPos;
 in vec2 texCoord;
 
+in vec3 viewCoord;
+
 uniform vec3 viewPos;
 
 struct Material {
@@ -13,6 +15,8 @@ struct Material {
     sampler2D diffuse;  // 漫反射贴图
     sampler2D specularColor; // 镜面光彩色贴图
     sampler2D specular; // 镜面贴图
+
+    sampler2D spotLightMap; // 聚光灯spotLight贴图
 
     float shininess;    // 反光度
 };
@@ -118,6 +122,9 @@ vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 frag2View, vec3 fragPos) {
     float spec = pow(max(dot(reflectDir, frag2View), 0.0), material0.shininess);
     vec3 specular = light.specular * vec3(texture(material0.specular, texCoord)) * spec;
 
+    vec2 viewTexCoord = normalize(viewCoord).xy;
+    vec3 spotLightMap = vec3(texture(material0.spotLightMap, viewTexCoord / 0.5 + 0.5)) * diff;
+
     // 巨坑！！之前做spotLight时，用的是自定义球型光源，light.direction就是原点指向光源位置的一个方向
     // 现在换成用相机做光源，但没注意light.direction的方向，是从相机指向出去的，导致theta计算始终有问题
     float theta = dot(normalize(frag2Light), normalize(-light.direction));
@@ -130,8 +137,11 @@ vec3 calcSpotLight(SpotLight light, vec3 normal, vec3 frag2View, vec3 fragPos) {
     ambient *= intensity * attenuation;
     diffuse *= intensity * attenuation;
     specular *= intensity * attenuation;
+    spotLightMap *= intensity * attenuation;
 
-    return ambient + diffuse + specular;
+    // return ambient + diffuse + specular;
+    // return ambient + spotLightMap + specular;
+    return ambient + diffuse + spotLightMap + specular;
 }
 
 void main() {

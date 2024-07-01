@@ -6,6 +6,7 @@ layout(location = 2) in vec2 aTexCoord;
 out vec3 vertexNormal;
 out vec3 fragPos;
 out vec2 texCoord;
+out vec3 viewCoord;
 
 uniform mat4 projection = mat4(1.0);
 uniform mat4 view = mat4(1.0);
@@ -17,5 +18,6 @@ void main() {
 
     fragPos = vec3(model * vec4(aPos, 1.0));
     texCoord = aTexCoord;
-    
+    viewCoord = vec3(view * vec4(fragPos, 1.0));
+    // viewCoord = vec3(view * vec4(aPos, 1.0));
 }

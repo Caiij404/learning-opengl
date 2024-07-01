@@ -161,18 +161,21 @@ int main(int argc, char *argv[])
 
     GLuint diffuseMap = loadTexture("./static/texture/container2.png");
     GLuint specularMap = loadTexture("./static/texture/container2_specular.png");
-
+    GLuint spotLightMap = loadTexture("./static/texture/awesomeface.png");
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, diffuseMap);
 
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, specularMap);
 
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, spotLightMap);
+
     DirLight dLight;
     dLight.direction = glm::vec3(1.0f, 1.0f, 1.0f);
     dLight.ambient = glm::vec3(0.01f);
     dLight.diffuse = glm::vec3(0.2f);
-    dLight.specular = glm::vec3(1.0f);
+    dLight.specular = glm::vec3(1.0f); 
 
     PointLight pLights[POINT_LIGHT_NUM];
     for (int i = 0; i < POINT_LIGHT_NUM; ++i)
@@ -182,7 +185,7 @@ int main(int argc, char *argv[])
         pLights[i].specular = glm::vec3(1.0f);
         pLights[i].constant = 1.0f;
         pLights[i].linear = 0.09f;
-        pLights[i].quadratic = 0.032f; 
+        pLights[i].quadratic = 0.032f;
         glm::vec3 pos(0.0f);
         switch (i)
         {
@@ -207,7 +210,7 @@ int main(int argc, char *argv[])
     sLight.diffuse = glm::vec3(1.0f);
     sLight.specular = glm::vec3(1.0f);
     sLight.constant = 1.0f;
-    sLight.linear = 0.09f;  
+    sLight.linear = 0.09f;
     sLight.quadratic = 0.032f;
     sLight.cutoff = cos(glm::radians(12.5f));
     sLight.outerCutoff = cos(glm::radians(17.5f));
@@ -217,6 +220,7 @@ int main(int argc, char *argv[])
     boxShader.use();
     boxShader.setInt("material0.diffuse", 0);
     boxShader.setInt("material0.specular", 1);
+    boxShader.setInt("material0.spotLightMap", 2);
 
     boxShader.setVec3("dLight.direction", dLight.direction);
     boxShader.setVec3("dLight.ambient", dLight.ambient);
