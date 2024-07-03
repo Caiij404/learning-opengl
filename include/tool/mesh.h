@@ -8,13 +8,17 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <shader.h>
+#include <tool/shader.h>
 
 #include <string>
 #include <vector>
-
 #define MAX_BONE_INFLUENCE 4
 
+using namespace std;
+
+// 这里重复定义了结构体Vertex
+// include/tool/mesh.h:20:8: error: redefinition of 'struct Vertex'
+#ifndef BUFFER_GEOMETRY
 struct Vertex
 {
     glm::vec3 Position;
@@ -23,11 +27,8 @@ struct Vertex
     glm::vec3 Tangent;
     glm::vec3 Bitangent;
 
-    // bone indices which will influence this vertex
-    int m_BoneIDs[MAX_BONE_INFLUENCE];
-    // weights from each bone
-    float m_Weights[MAX_BONE_INFLUENCE];
 };
+#endif
 
 struct Texture
 {
@@ -95,7 +96,7 @@ public:
 
         // draw mesh
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(indices.size()), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
         // always good practice to set everything back to defaults once configured.
@@ -144,15 +145,6 @@ private:
         // vertex Bitangents
         glEnableVertexAttribArray(4);
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(offsetof(Vertex, Bitangent)));
-
-        // ids
-        glEnableVertexAttribArray(5);
-        glVertexAttribIPointer(5, 4, GL_INT, sizeof(Vertex), (void *)(offsetof(Vertex, m_BoneIDs)));
-
-        // weights
-        glEnableVertexAttribArray(6);
-        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)(offsetof(Vertex, m_Weights)));
-
         glBindVertexArray(0);
     }
 };
