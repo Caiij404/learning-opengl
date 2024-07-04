@@ -5,7 +5,6 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -70,7 +69,9 @@ private:
         for (unsigned int i = 0; i < node->mNumMeshes; ++i)
         {
             // the node object only contains indices to index the actual objects in the scene.
+            // 节点对象仅包含索引，真正的数据在Scene对象下的数组里
             // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
+            // Scene包含所有数据，节点仅为了保持事务的有序
             aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
             meshes.push_back(processMesh(mesh, scene));
         }
@@ -115,6 +116,12 @@ private:
                 vec.x = mesh->mTextureCoords[0][i].x;
                 vec.y = mesh->mTextureCoords[0][i].y;
                 vertex.TexCoords = vec;
+            }
+            else
+                vertex.TexCoords = glm::vec2(0.0f, 0.0f);
+                
+            if (mesh->HasTangentsAndBitangents())
+            {
 
                 // tangent
                 vector.x = mesh->mTangents[i].x;
@@ -128,9 +135,6 @@ private:
                 vector.z = mesh->mBitangents[i].z;
                 vertex.Bitangent = vector;
             }
-            else
-                vertex.TexCoords = glm::vec2(0.0f, 0.0f);
-
             vertices.push_back(vertex);
         }
         // now walk through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.

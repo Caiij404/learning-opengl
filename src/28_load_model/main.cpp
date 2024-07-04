@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     glEnable(GL_PROGRAM_POINT_SIZE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  
+
     glEnable(GL_DEPTH_TEST);
     // glDepthFunc(GL_LESS);
 
@@ -103,8 +103,8 @@ int main(int argc, char *argv[])
     // 2.鼠标事件
     glfwSetCursorPosCallback(window, mouse_callback);
 
-    Shader ourShader("./shader/vertex.glsl", "./shader/boxFragment.glsl");
-    Shader lightObjectShader("./shader/vertex.glsl", "./shader/lightFragment.glsl");
+    Shader ourShader("./shader/vertex.glsl", "./shader/fragment.glsl");
+    Shader lightObjectShader("./shader/light_object_vert.glsl", "./shader/light_object_frag.glsl");
 
     PlaneGeometry planeGeometry(1.0, 1.0, 1.0, 1.0);
     BoxGeometry boxGeometry(1.0, 1.0, 1.0);
