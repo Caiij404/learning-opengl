@@ -68,7 +68,12 @@ private:
         float gridY1 = gridY + 1.0f;
 
         float vertexCounter = 0.0f;
-        float groupCount = 0.0f;
+        // unused variable
+        // float groupCount = 0.0f;
+
+        // unused variable
+        float tmp = materialIndex;
+        tmp++;
 
         glm::vec3 vector = glm::vec3(0.0f, 0.0f, 0.0f);
 

@@ -37,7 +37,8 @@ public:
 
     void logParameters()
     {
-        for (int i = 0; i < vertices.size(); ++i)
+        int length = vertices.size();
+        for (int i = 0; i < length; ++i)
         {
             cout << "---------------------" << endl;
             cout << "vertex ->> x: " << vertices[i].Position.x << ", y: " << vertices[i].Position.y << ", z: " << vertices[i].Position.z << endl;

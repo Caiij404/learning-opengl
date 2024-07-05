@@ -1,17 +1,9 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include <glad/glad.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <stb_image.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-
-#include <mesh.h>
-#include <shader.h>
 
 #include <string>
 #include <fstream>
@@ -19,6 +11,8 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include "shader.h"
+#include "Mesh.h"
 using namespace std;
 
 unsigned int TextureFromFile(const char *path, const string &directory, bool gamma = false);
@@ -56,12 +50,12 @@ private:
         const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         {
-            cout << "ERROR:ASSIMP:: " << importer.GetErrorString() << endl;
+            cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << endl;
             return;
         }
         // retrieve the directory path of the filepath
         // 从文件路径中检索目录路径
-        this->directory = path.substr(0, path.find_last_of('/'));
+        directory = path.substr(0, path.find_last_of('/'));
 
         // process ASSIMP's root node recursively
         processNode(scene->mRootNode, scene);
@@ -75,9 +69,11 @@ private:
         for (unsigned int i = 0; i < node->mNumMeshes; ++i)
         {
             // the node object only contains indices to index the actual objects in the scene.
+            // 节点对象仅包含索引，真正的数据在Scene对象下的数组里
             // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
+            // Scene包含所有数据，节点仅为了保持事务的有序
             aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-            this->meshes.push_back(processMesh(mesh, scene));
+            meshes.push_back(processMesh(mesh, scene));
         }
         // after we've processed all of the meshes (if any) we then recursively process each of the children nodes
         for (unsigned int i = 0; i < node->mNumChildren; ++i)
@@ -98,44 +94,47 @@ private:
         {
             Vertex vertex;
             // declare a placeholder vector since assimp uses its own vector class that doesnot covert to glm::vec3 class so we transfer the data to this placeholder glm::vec3 first.
-            glm::vec3 vector3;
+            glm::vec3 vector;
             // position
-            vector3.x = mesh->mVertices[i].x;
-            vector3.y = mesh->mVertices[i].y;
-            vector3.z = mesh->mVertices[i].z;
-            vertex.Position = vector3;
+            vector.x = mesh->mVertices[i].x;
+            vector.y = mesh->mVertices[i].y;
+            vector.z = mesh->mVertices[i].z;
+            vertex.Position = vector;
             // normal
             if (mesh->HasNormals())
             {
-                vector3.x = mesh->mNormals[i].x;
-                vector3.y = mesh->mNormals[i].y;
-                vector3.z = mesh->mNormals[i].z;
-                vertex.Normal = vector3;
+                vector.x = mesh->mNormals[i].x;
+                vector.y = mesh->mNormals[i].y;
+                vector.z = mesh->mNormals[i].z;
+                vertex.Normal = vector;
             }
             // texture coordinates
             // Assimp允许每个顶点至多有8个不同的纹理坐标，这里只关心第一个
             if (mesh->mTextureCoords[0])
             {
-                glm::vec2 vector2;
-                vector2.x = mesh->mTextureCoords[0][i].x;
-                vector2.y = mesh->mTextureCoords[0][i].y;
-                vertex.TexCoords = vector2;
-
-                // tangent
-                vector3.x = mesh->mTangents[i].x;
-                vector3.y = mesh->mTangents[i].y;
-                vector3.z = mesh->mTangents[i].z;
-                vertex.Tangent = vector3;
-
-                // bitangent
-                vector3.x = mesh->mBitangents[i].x;
-                vector3.y = mesh->mBitangents[i].y;
-                vector3.z = mesh->mBitangents[i].z;
-                vertex.Bitangent = vector3;
+                glm::vec2 vec;
+                vec.x = mesh->mTextureCoords[0][i].x;
+                vec.y = mesh->mTextureCoords[0][i].y;
+                vertex.TexCoords = vec;
             }
             else
                 vertex.TexCoords = glm::vec2(0.0f, 0.0f);
+                
+            if (mesh->HasTangentsAndBitangents())
+            {
 
+                // tangent
+                vector.x = mesh->mTangents[i].x;
+                vector.y = mesh->mTangents[i].y;
+                vector.z = mesh->mTangents[i].z;
+                vertex.Tangent = vector;
+
+                // bitangent
+                vector.x = mesh->mBitangents[i].x;
+                vector.y = mesh->mBitangents[i].y;
+                vector.z = mesh->mBitangents[i].z;
+                vertex.Bitangent = vector;
+            }
             vertices.push_back(vertex);
         }
         // now walk through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
@@ -146,9 +145,7 @@ private:
             // retrieve all indices of the face and store them in indices vector
             // 检索面的所有索引并存在indices数组中
             for (unsigned int j = 0; j < face.mNumIndices; ++j)
-            {
                 indices.push_back(face.mIndices[j]);
-            }
         }
 
         // process materials
@@ -161,7 +158,21 @@ private:
         // specular: texture_specularN
         // normal: texture_normalN
 
+        // 1. diffuse maps
         vector<Texture> diffuseMaps = loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+        textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
+        // 2. specular maps
+        vector<Texture> specularMaps = loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+        textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
+        // 3. normal maps
+        std::vector<Texture> normalMaps = loadMaterialTextures(material, aiTextureType_HEIGHT, "texture_normal");
+        textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
+        // 4. height maps
+        std::vector<Texture> heightMaps = loadMaterialTextures(material, aiTextureType_AMBIENT, "texture_height");
+        textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+
+        // return a mesh object created from the extracted mesh data
+        return Mesh(vertices, indices, textures);
     }
 
     // checks all material textures of a given type and loads the textures if they're not loaded yet
@@ -214,9 +225,9 @@ unsigned int TextureFromFile(const char *path, const string &directory, bool gam
         GLenum format;
         if (nrComponents == 1)
             format = GL_RED;
-        else if (nrComponents == 2)
-            format = GL_RGB;
         else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
             format = GL_RGBA;
 
         glBindTexture(GL_TEXTURE_2D, id);
