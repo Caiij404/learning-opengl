@@ -70,6 +70,7 @@ int main(int argc, char *argv[])
     // 2.鼠标事件
     glfwSetCursorPosCallback(window, mouse_callback);
 
+    // Shader ourShader("./shader/vertex_m.glsl", "./shader/fragment_m.glsl");
     Shader ourShader("./shader/vertex.glsl", "./shader/fragment.glsl");
     Shader lightObjectShader("./shader/light_object_vert.glsl", "./shader/light_object_frag.glsl");
 
@@ -81,20 +82,12 @@ int main(int argc, char *argv[])
     unsigned int specularMap = loadTexture("./static/texture/container2_specular.png");
     unsigned int awesomeMap = loadTexture("./static/texture/awesomeface.png");
     ourShader.use();
-    ourShader.setInt("material.diffuse", 0);
-    ourShader.setInt("material.specular", 1);
-
-    ourShader.setInt("awesomeMap", 2);
+    // ourShader.setInt("material.diffuse", 0);
+    // ourShader.setInt("material.specular", 1);
+ 
+    // ourShader.setInt("awesomeMap", 2);
 
     float factor = 0.0;
-
-    // 旋转矩阵
-    glm::mat4 ex = glm::eulerAngleX(45.0f);
-    glm::mat4 ey = glm::eulerAngleY(45.0f);
-    glm::mat4 ez = glm::eulerAngleZ(45.0f);
-
-    glm::mat4 qularXYZ = glm::eulerAngleXYZ(45.0f, 45.0f, 45.0f);
-
     float fov = 45.0f; // 视锥体的角度
     glm::vec3 view_translate = glm::vec3(0.0, 0.0, -5.0);
     ImVec4 clear_color = ImVec4(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0); // 25, 25, 25
@@ -127,18 +120,6 @@ int main(int argc, char *argv[])
     ourShader.setFloat("light.linear", 0.09f);
     ourShader.setFloat("light.quadratic", 0.032f);
 
-    // 定义是个不同的箱子位置
-    glm::vec3 cubePositions[] = {
-        glm::vec3(0.0f, 0.0f, 0.0f),
-        glm::vec3(2.0f, 5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3(2.4f, -0.4f, -3.5f),
-        glm::vec3(-1.7f, 3.0f, -7.5f),
-        glm::vec3(1.3f, -2.0f, -2.5f),
-        glm::vec3(1.5f, 2.0f, -2.5f),
-        glm::vec3(1.5f, 0.2f, -1.5f),
-        glm::vec3(-1.3f, 1.0f, -1.5f)};
 
     // 点光源的位置
     glm::vec3 pointLightPositions[] = {
@@ -239,19 +220,6 @@ int main(int argc, char *argv[])
         }
 
         glm::mat4 model = glm::mat4(1.0f);
-        for (unsigned int i = 0; i < 10; i++)
-        {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-
-            float angle = 10.0f * i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-
-            ourShader.setMat4("model", model);
-
-            // glBindVertexArray(boxGeometry.VAO);
-            // glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-        }
 
         model = glm::mat4(1.0f);
         model = glm::rotate(model, glm::radians(15.0f * (float)glfwGetTime()), glm::vec3(0.0f, 1.0f, 0.0f));
