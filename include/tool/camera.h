@@ -6,12 +6,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
-enum Camera_Movement
+enum Camera_KeyBoardAction
 {
     FORWARD,
     BACKWARD,
     LEFT,
-    RIGHT
+    RIGHT,
+    UP,
+    DOWN,
+    SPACEBAR,
 };
 
 // Default camera values
@@ -65,17 +68,26 @@ public:
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
-    void ProcessKeyboard(Camera_Movement direction, float deltaTime)
+    void ProcessKeyboard(Camera_KeyBoardAction action, float deltaTime)
     {
         float velocity = MovementSpeed * deltaTime;
-        if (direction == FORWARD)
+        if (action == FORWARD)
             Position += Front * velocity;
-        if (direction == BACKWARD)
+        if (action == BACKWARD)
             Position -= Front * velocity;
-        if (direction == LEFT)
+        if (action == LEFT)
             Position -= Right * velocity;
-        if (direction == RIGHT)
+        if (action == RIGHT)
             Position += Right * velocity;
+        if (action == UP)
+            Position += WorldUp * velocity;
+        if (action == DOWN)
+            Position -= WorldUp * velocity;
+        if (action == SPACEBAR)
+        {
+            Yaw += velocity * 20;
+            updateCameraVectors();
+        }
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.

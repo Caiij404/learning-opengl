@@ -194,14 +194,23 @@ void processInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    Camera_KeyBoardAction action;
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
+        action = FORWARD;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
+        action = BACKWARD;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
+        action = LEFT;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
+        action = RIGHT;
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        action = UP;
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+        action = DOWN;
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        action = SPACEBAR;
+    camera.ProcessKeyboard(action, deltaTime);
 }
 
 void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
