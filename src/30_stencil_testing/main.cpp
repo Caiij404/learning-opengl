@@ -81,23 +81,29 @@ int main(int argc, char *argv[])
         glm::vec3(0.0f, 1.0f, 0.0f)};
 
     float myNear = 0.1;
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_NOTEQUAL, 1, 0xff);
+    // 1.模板测试失败时保留片段 2.模板测试通过但深度测试失败时保留片段 3.模板深度都通过时
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     while (!glfwWindowShouldClose(window))
     {
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        ImGui::Begin("tune near");
-        ImGui::SliderFloat("Near", &myNear, 0.1f, 5.0f);
-        ImGui::End();
+        // ImGui_ImplOpenGL3_NewFrame();
+        // ImGui_ImplGlfw_NewFrame();
+        // ImGui::NewFrame();
+        // ImGui::Begin("tune near");
+        // ImGui::SliderFloat("Near", &myNear, 0.1f, 5.0f);
+        // ImGui::End();
         processInput(window);
+
+        glEnable(GL_STENCIL_TEST);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastTime;
         lastTime = currentFrame;
 
         glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         float radius = 5.0f;
         float camX = sin(currentFrame * 0.5) * radius;
         float camZ = cos(currentFrame * 0.5) * radius;
@@ -131,16 +137,22 @@ int main(int argc, char *argv[])
         sceneShader.setFloat("uvScale", 4.0);
         sceneShader.setMat4("model", model);
 
+        // 在绘制地板时不更新模板缓冲
+        glStencilMask(0x00);
+
         // 绘制地面
         glBindTexture(GL_TEXTURE_2D, board);
         glBindVertexArray(planeGeometry.vao);
         glDrawElements(GL_TRIANGLES, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
 
+        glStencilFunc(GL_ALWAYS, 1, 0xff);
+        glStencilMask(0xff);
         // 绘制砖块
         glBindTexture(GL_TEXTURE_2D, brick);
 
-        model = glm::scale(glm::mat4(1.0f), glm::vec3(2.0));
-        model = glm::translate(model, glm::vec3(1.0, 0.5, -1.0));
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(1.0, 1.0, -1.0));
+        model = glm::scale(model, glm::vec3(2.0));
         sceneShader.setFloat("uvScale", 1.0f);
         sceneShader.setMat4("model", model);
         glBindVertexArray(boxGeometry.vao);
@@ -150,6 +162,34 @@ int main(int argc, char *argv[])
         sceneShader.setMat4("model", model);
         glBindVertexArray(boxGeometry.vao);
         glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
+        // 绘制放大一点点后的砖块
+        glStencilFunc(GL_NOTEQUAL, 1, 0xff);
+        glStencilMask(0x00);
+        glDisable(GL_DEPTH_TEST);
+
+        sceneShader.setFloat("stenci", 1.0);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(1.0f, 1.0f, -1.0f));
+        model = glm::scale(model, glm::vec3(2.03));
+        sceneShader.setFloat("uvScale", 1.0f);
+        sceneShader.setMat4("model", model);
+        glBindVertexArray(boxGeometry.vao);
+        glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-1.0, 0.5, 2.0));
+        model = glm::scale(model, glm::vec3(1.03));
+        sceneShader.setMat4("model", model);
+        glBindVertexArray(boxGeometry.vao);
+        glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+        glStencilMask(0x00);
+
+        glBindVertexArray(0);
+        glStencilMask(0xff);
+        glEnable(GL_DEPTH_TEST);
+        glStencilFunc(GL_ALWAYS, 0, 0xff);
+        sceneShader.setFloat("stenci", 0.0);
 
         // 绘制灯光物体
         // ***********************************
@@ -176,8 +216,8 @@ int main(int argc, char *argv[])
         }
 
         // 渲染 gui
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        // ImGui::Render();
+        // ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -208,6 +248,10 @@ void processInput(GLFWwindow *window)
         action = UP;
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         action = DOWN;
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+        action = ROTATEL;
+    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+        action = ROTATER;
     camera.ProcessKeyboard(action, deltaTime);
 }
 

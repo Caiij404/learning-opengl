@@ -14,7 +14,8 @@ enum Camera_KeyBoardAction
     RIGHT,
     UP,
     DOWN,
-    SPACEBAR,
+    ROTATEL,
+    ROTATER,
 };
 
 // Default camera values
@@ -83,7 +84,12 @@ public:
             Position += WorldUp * velocity;
         if (action == DOWN)
             Position -= WorldUp * velocity;
-        if (action == SPACEBAR)
+        if (action == ROTATEL)
+        {
+            Yaw -= velocity * 20;
+            updateCameraVectors();
+        }
+        if (action == ROTATER)
         {
             Yaw += velocity * 20;
             updateCameraVectors();
