@@ -18,6 +18,12 @@ enum Camera_KeyBoardAction
     ROTATER,
 };
 
+enum Camera_MouseAction
+{
+    TRANSLATION,
+    ROTATION,
+};
+
 // Default camera values
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
@@ -97,35 +103,56 @@ public:
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
-    void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true)
+    void ProcessMouseMovement(float xoffset, float yoffset, Camera_MouseAction action)
     {
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
 
-        Yaw += xoffset;
-        Pitch += yoffset;
-
-        // make sure that when pitch is out of bounds, screen doesn't get flipped
-        if (constrainPitch)
+        if (action == TRANSLATION)
         {
-            if (Pitch > 89.0f)
-                Pitch = 89.0f;
-            if (Pitch < -89.0f)
-                Pitch = -89.0f;
-        }
+            xoffset *= 0.1;
+            yoffset *= 0.1;
 
-        // update Front, Right and Up Vectors using the updated Euler angles
-        updateCameraVectors();
+            this->Position.x -= xoffset;
+            this->Position.y -= yoffset;
+        }
+        else if (action == ROTATION)
+        {
+
+            Yaw += xoffset;
+            Pitch += yoffset;
+            // make sure that when pitch is out of bounds, screen doesn't get flipped
+            // if (constrainPitch)
+            {
+                if (Pitch > 89.0f)
+                    Pitch = 89.0f;
+                if (Pitch < -89.0f)
+                    Pitch = -89.0f;
+            }
+            // update Front, Right and Up Vectors using the updated Euler angles
+            updateCameraVectors();
+        }
     }
 
     // processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
     void ProcessMouseScroll(float yoffset)
     {
-        Zoom -= (float)yoffset;
+        Zoom -= (float)yoffset * 2;
         if (Zoom < 1.0f)
             Zoom = 1.0f;
-        if (Zoom > 45.0f)
-            Zoom = 45.0f;
+        if (Zoom > 89.0f)
+            Zoom = 89.0f;
+    }
+
+    void getCameraInfo()
+    {
+        cout << "position: (" << Position.x << ", " << Position.y << ", " << Position.z << ")" << endl;
+        cout << "Front: (" << Front.x << ", " << Front.y << ", " << Front.z << ")" << endl;
+        cout << "Up: (" << Up.x << ", " << Up.y << ", " << Up.z << ")" << endl;
+        cout << "Right: (" << Right.x << ", " << Right.y << ", " << Right.z << ")" << endl;
+        cout << "Yaw: " << Yaw << endl;
+        cout << "Pitch: " << Pitch << endl;
+        cout << "-------------------------------------" << endl;
     }
 
 private:

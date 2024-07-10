@@ -34,6 +34,7 @@ Camera camera(glm::vec3(0.0, 1.0, 6.0));
 #include <tool/mySpace.h>
 using namespace std;
 using namespace mySpace;
+bool stopPainting = false;
 
 int main(int argc, char *argv[])
 {
@@ -205,14 +206,14 @@ int main(int argc, char *argv[])
         // 绘制透明窗户
         glBindTexture(GL_TEXTURE_2D, wpng);
         map<float, glm::vec3> sorted;
-        for(int i=0; i<4; ++i)
+        for (int i = 0; i < 4; ++i)
         {
-            float distance = glm::length(windowPosition[i]-camera.Position);
+            float distance = glm::length(windowPosition[i] - camera.Position);
             sorted[distance] = windowPosition[i];
         }
 
         // 从远处的透明窗户开始渲染
-        for(auto i = sorted.rbegin(); i != sorted.rend(); ++i)
+        for (auto i = sorted.rbegin(); i != sorted.rend(); ++i)
         {
             model = glm::translate(glm::mat4(1.0f), i->second);
             model = glm::scale(model, glm::vec3(2.0f));
@@ -221,6 +222,8 @@ int main(int argc, char *argv[])
         }
         sceneShader.setBool("isRGBA", false);
 
+        // if(stopPainting)
+        //     camera.getCameraInfo(); 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -239,6 +242,10 @@ void processInput(GLFWwindow *window)
         glfwSetWindowShouldClose(window, true);
 
     Camera_KeyBoardAction action;
+    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    {
+        stopPainting = !stopPainting;
+    }
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         action = FORWARD;
@@ -269,7 +276,14 @@ void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
     lastX = xpos;
     lastY = ypos;
 
-    // camera.ProcessMouseMovement(xoffset, yoffset);
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+    {
+        camera.ProcessMouseMovement(xoffset, yoffset, TRANSLATION);
+    }
+    else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+    {
+        camera.ProcessMouseMovement(xoffset, yoffset, ROTATION);
+    }
 }
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
