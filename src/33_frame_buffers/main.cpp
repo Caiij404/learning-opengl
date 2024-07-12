@@ -197,6 +197,24 @@ int main(int argc, char *argv[])
         ImGui::NewFrame();
         // *************************************************************************
 
+        // *********************************像素风尝试*********************************
+        // 缩小视口和颜色纹理->在缩小后的纹理上绘制场景->还原视口->绘制帧缓冲
+        // 缩放
+        const float buf_scale = 5.0f;
+        const int buf_width = SCREEN_WIDTH / buf_scale;
+        const int buf_height = SCREEN_HEIGHT / buf_scale;
+
+        // 重新设置颜色缓冲
+        glBindTexture(GL_TEXTURE_2D, texBuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, buf_width, buf_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, buf_width, buf_height);
+        glViewport(0, 0, buf_width, buf_height);
+        // *********************************像素风尝试*********************************
+
         // part 1
         // bind to framebuffer and draw scene as we normally would to color texture
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -204,6 +222,8 @@ int main(int argc, char *argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
 
+        // 将场景绘制到帧缓冲中
+        {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastTime;
         lastTime = currentFrame;
@@ -328,6 +348,13 @@ int main(int argc, char *argv[])
             glDrawElements(GL_TRIANGLES, grassGeometry.indices.size(), GL_UNSIGNED_INT, 0);
         }
         sceneShader.setBool("isRGBA", false);
+
+        }
+
+        // *********************************像素风尝试*********************************
+        glViewport(0,0,SCREEN_WIDTH, SCREEN_HEIGHT);
+        // *********************************像素风尝试*********************************
+
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
