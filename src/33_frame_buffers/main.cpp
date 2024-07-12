@@ -13,6 +13,7 @@
 #include <tool/shader.h>
 #include <tool/camera.h>
 #include <tool/gui.h>
+#include <tool/glm_io.hpp>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
@@ -94,27 +95,7 @@ int main(int argc, char *argv[])
         glm::vec3(-3, 1, -2),
     };
 
-    float quadVertices[] = {
-        // positions   // texCoords
-        -1.0f, 1.0f, 0.0f, 1.0f,
-        -1.0f, -1.0f, 0.0f, 0.0f,
-        1.0f, -1.0f, 1.0f, 0.0f,
-
-        -1.0f, 1.0f, 0.0f, 1.0f,
-        1.0f, -1.0f, 1.0f, 0.0f,
-        1.0f, 1.0f, 1.0f, 1.0f};
-
-    // screen quad vao
-    GLuint quadVAO, quadVBO;
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+    PlaneGeometry mirrorGeometry;
 
     float myNear = 0.1;
     float x = 0.0f, y = 0.0f, z = 0.0f;
@@ -169,7 +150,6 @@ int main(int argc, char *argv[])
 
     while (!glfwWindowShouldClose(window))
     {
-        // 帧缓冲章节，《后期处理》前的内容，可通过鼠标左右键按住并滑动一段距离的方式来展示。
         if (flag)
         {
             // 线框模式
@@ -197,24 +177,6 @@ int main(int argc, char *argv[])
         ImGui::NewFrame();
         // *************************************************************************
 
-        // *********************************像素风尝试*********************************
-        // 缩小视口和颜色纹理->在缩小后的纹理上绘制场景->还原视口->绘制帧缓冲
-        // 缩放
-        const float buf_scale = 5.0f;
-        const int buf_width = SCREEN_WIDTH / buf_scale;
-        const int buf_height = SCREEN_HEIGHT / buf_scale;
-
-        // 重新设置颜色缓冲
-        glBindTexture(GL_TEXTURE_2D, texBuffer);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, buf_width, buf_height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, buf_width, buf_height);
-        glViewport(0, 0, buf_width, buf_height);
-        // *********************************像素风尝试*********************************
-
         // part 1
         // bind to framebuffer and draw scene as we normally would to color texture
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -222,8 +184,6 @@ int main(int argc, char *argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
 
-        // 将场景绘制到帧缓冲中
-        {
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastTime;
         lastTime = currentFrame;
@@ -234,7 +194,9 @@ int main(int argc, char *argv[])
         pointLightPositions[0].z = camZ;
         pointLightPositions[0].x = camX;
 
+        // camera.Yaw += 180.0f;
         glm::mat4 view = camera.GetViewMatrix();
+        // camera.Yaw -= 180.0f;
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), myNear, 100.0f);
 
         sceneShader.use();
@@ -349,23 +311,127 @@ int main(int argc, char *argv[])
         }
         sceneShader.setBool("isRGBA", false);
 
-        }
-
-        // *********************************像素风尝试*********************************
-        glViewport(0,0,SCREEN_WIDTH, SCREEN_HEIGHT);
-        // *********************************像素风尝试*********************************
-
+        glBindVertexArray(0);
 
         // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST);
+
+        view = camera.GetViewMatrix();
+        projection = glm::perspective(glm::radians(camera.Zoom), (float)(SCREEN_WIDTH / SCREEN_HEIGHT), myNear, 100.0f);
+
+        sceneShader.use();
+        sceneShader.setMat4("view", view);
+        sceneShader.setMat4("projection", projection);
+        sceneShader.setVec3("viewPos", camera.Position);
+
+        for (int i = 0; i < 4; ++i)
+        {
+            // 设置点光源属性
+            sceneShader.setVec3("pointLights[" + std::to_string(i) + "].position", pointLightPositions[i]);
+            sceneShader.setVec3("pointLights[" + std::to_string(i) + "].ambient", 0.01f, 0.01f, 0.01f);
+            sceneShader.setVec3("pointLights[" + std::to_string(i) + "].diffuse", pointLightColors[i]);
+            sceneShader.setVec3("pointLights[" + std::to_string(i) + "].specular", 1.0f, 1.0f, 1.0f);
+            // // 设置衰减
+            sceneShader.setFloat("pointLights[" + std::to_string(i) + "].constant", 1.0f);
+            sceneShader.setFloat("pointLights[" + std::to_string(i) + "].linear", 0.09f);
+            sceneShader.setFloat("pointLights[" + std::to_string(i) + "].quadratic", 0.032f);
+        }
+
+        model = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0, 0.0, 0.0));
+
+        sceneShader.setFloat("uvScale", 4.0);
+        sceneShader.setMat4("model", model);
+
+        // 绘制地面
+        glBindTexture(GL_TEXTURE_2D, board);
+        glBindVertexArray(planeGeometry.vao);
+        glDrawElements(GL_TRIANGLES, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
+        // 绘制砖块
+        glBindTexture(GL_TEXTURE_2D, brick);
+        // 启用面剔除
+        glEnable(GL_CULL_FACE);
+        // 剔除背向面
+        glCullFace(GL_BACK);
+
+        model = glm::scale(glm::mat4(1.0f), glm::vec3(2.0));
+        model = glm::translate(model, glm::vec3(1.0, 0.5, -1.0));
+        sceneShader.setFloat("uvScale", 1.0f);
+        sceneShader.setMat4("model", model);
+        glBindVertexArray(boxGeometry.vao);
+        glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(-1.0, 0.5, 2.0));
+        sceneShader.setMat4("model", model);
+        glBindVertexArray(boxGeometry.vao);
+        glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
+        glDisable(GL_CULL_FACE);
+
+        // 绘制灯光物体
+        // ***********************************
+        lightShader.use();
+        lightShader.setMat4("view", view);
+        lightShader.setMat4("projection", projection);
+
+        lightPos = glm::vec3(lightPosition.x * glm::sin(currentFrame) * 2.0, lightPosition.y, lightPosition.z);
+        model = glm::translate(glm::mat4(1.0f), lightPos);
+        lightShader.setMat4("model", model);
+        lightShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+
+        glBindVertexArray(sphereGeometry.vao);
+        glDrawElements(GL_TRIANGLES, sphereGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
+        for (int i = 0; i < 4; ++i)
+        {
+            model = glm::translate(glm::mat4(1.0f), pointLightPositions[i]);
+            lightShader.setMat4("model", model);
+            lightShader.setVec3("lightColor", pointLightColors[i]);
+
+            glBindVertexArray(sphereGeometry.vao);
+            glDrawElements(GL_TRIANGLES, sphereGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+        }
+
+        // 绘制草地
+        sceneShader.use();
+        sceneShader.setBool("isRGBA", true);
+        glBindTexture(GL_TEXTURE_2D, grass);
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0.5, 0));
+        sceneShader.setMat4("model", model);
+        glBindVertexArray(grassGeometry.vao);
+        glDrawElements(GL_TRIANGLES, grassGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(2, 0.5, 0));
+        sceneShader.setMat4("model", model);
+        glBindVertexArray(grassGeometry.vao);
+        glDrawElements(GL_TRIANGLES, grassGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(4, 0.5, 0));
+        sceneShader.setMat4("model", model);
+        glBindVertexArray(grassGeometry.vao);
+        glDrawElements(GL_TRIANGLES, grassGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
+        // 绘制透明窗户
+        glBindTexture(GL_TEXTURE_2D, wpng);
+        // 从远处的透明窗户开始渲染
+        for (auto i = sorted.rbegin(); i != sorted.rend(); ++i)
+        {
+            model = glm::translate(glm::mat4(1.0f), i->second);
+            model = glm::scale(model, glm::vec3(2.0f));
+            sceneShader.setMat4("model", model);
+            glDrawElements(GL_TRIANGLES, grassGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+        }
+        sceneShader.setBool("isRGBA", false);
+
         glDisable(GL_DEPTH_TEST);
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
         frameShader.use();
         frameShader.setInt("renderType", renderType);
-        glBindVertexArray(quadVAO);
         glBindTexture(GL_TEXTURE_2D, texBuffer);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(mirrorGeometry.vao);
+        glDrawElements(GL_TRIANGLES, mirrorGeometry.indices.size(), GL_UNSIGNED_INT, 0);
 
         // 渲染 gui
         ImGui::Render();
