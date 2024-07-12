@@ -75,3 +75,52 @@ if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 }
 glBindFramebuffer(GL_FRAMEBUFFER, 0);
 ```
+
+**渲染循环**
+
+```c++
+while(){
+    // 第一处理阶段
+    // 绑定自定义的帧缓冲
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glEnable(GL_DEPTH_TEST);
+
+    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // 正常绘制场景
+    drawScene...
+
+    // 第二处理阶段
+    // 绑定默认的帧缓冲对象
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // 需关闭深度测试
+    // disable depth test so screen-space quad isn't discarded due to depth test.
+    glDisable(GL_DEPTH_TEST);
+
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    frameBufferShader.use();//绘制创建的帧缓冲屏幕窗口
+    glBindVertexArray(frameGeometry.VAO);
+    glBindTexture(GL_TEXTURE_2D, texColorBuffer);
+    glDrawElements(GL_TRIANGLES, frameGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+}
+```
+
+综上，以及`main.cpp`，算是弄明白《帧缓冲章节》在<后期处理>之前的内容的意思。大概来讲就是，在之前章节学习到的绘制场景的操作，本来都是直接渲染到默认帧缓冲对象上，然后输出到屏幕的，现在是把这些渲染到自定义的帧缓冲对象`fbo`中，**即第一处理阶段**；接着切换回默认的帧缓冲对象，把和屏幕大小的平面`frameGeometry`渲染到屏幕上，并把自定义帧缓冲对象的内容以纹理的方式给到这个平面，**即第二处理阶段**。
+
+那最终的效果和之前没太大差别，这里可以通过切换渲染模式，来看此次学习内容的效果。
+
+
+```c++
+// 线框模式
+glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+// 普通模式
+glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+```
+
+<br>
+<br>
+
+-----------

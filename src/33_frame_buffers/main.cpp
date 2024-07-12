@@ -35,6 +35,7 @@ Camera camera(glm::vec3(0.0, 1.0, 6.0));
 using namespace std;
 using namespace mySpace;
 bool stopPainting = false;
+bool flag = false;
 
 int main(int argc, char *argv[])
 {
@@ -58,6 +59,7 @@ int main(int argc, char *argv[])
 
     Shader sceneShader("./shader/sceneVert.glsl", "./shader/sceneFrag.glsl");
     Shader lightShader("./shader/lightVert.glsl", "./shader/lightFrag.glsl");
+    Shader frameShader("./shader/frame_buffer_quad_vert.glsl", "./shader/frame_buffer_quad_frag.glsl");
 
     PlaneGeometry planeGeometry(10.0f, 10.0f, 10.0f, 10.0f);
     BoxGeometry boxGeometry(1.0f, 1.0f, 1.0f);
@@ -92,6 +94,28 @@ int main(int argc, char *argv[])
         glm::vec3(-3, 1, -2),
     };
 
+    float quadVertices[] = {
+        // positions   // texCoords
+        -1.0f, 1.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f,
+        1.0f, -1.0f, 1.0f, 0.0f,
+
+        -1.0f, 1.0f, 0.0f, 1.0f,
+        1.0f, -1.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 1.0f, 1.0f};
+
+    // screen quad vao
+    GLuint quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+
     float myNear = 0.1;
     float x = 0.0f, y = 0.0f, z = 0.0f;
     glEnable(GL_BLEND);
@@ -115,11 +139,13 @@ int main(int argc, char *argv[])
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+    glBindTexture(GL_TEXTURE_2D, 0);
     // 将纹理附加到当前绑定的帧缓冲
     // 1.帧缓冲的目标（绘制、读取或二者都有） 2.想要附加的附件类型 3.附加的纹理类型 4.纹理 5.多级渐远纹理级别
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texBuffer, 0);
 
+    // 希望能够进行深度测试和模板测试，创建一个深度附件到帧缓冲中。
+    // 而只希望采样颜色缓冲，非其他缓冲，那创建一个渲染缓冲对象即可
     // 渲染缓冲对象
     unsigned int rbo;
     glGenRenderbuffers(1, &rbo);
@@ -127,18 +153,33 @@ int main(int argc, char *argv[])
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
     // 创建一个深度和模板渲染缓冲对象
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCREEN_WIDTH, SCREEN_HEIGHT);
-    // 附加渲染缓冲对象
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); 
-
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    // 给渲染缓冲对象分配完内存后，就可以解绑它了。
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    // 附加渲染缓冲对象到帧缓冲的深度和模板附件上
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+    // 检查帧缓冲是否完整
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
-        std::cout<<"ERROR::Framebuffer is not complete!" << std::endl;
+        std::cout << "ERROR::Framebuffer is not complete!" << std::endl;
     }
+    // 记得要解绑，避免不小心渲染到错误的帧缓冲上
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    // 现在这个帧缓冲是完整的，我们只需要绑定这个帧缓冲对象，让渲染到帧缓冲的缓冲中而不是默认的帧缓冲中。
 
     while (!glfwWindowShouldClose(window))
     {
+        // 帧缓冲章节，《后期处理》前的内容，可通过鼠标左右键按住并滑动一段距离的方式来展示。
+        if (flag)
+        {
+            // 线框模式
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+        else
+        {
+            // 普通模式
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
         processInput(window);
 
         // 显示帧率
@@ -156,12 +197,16 @@ int main(int argc, char *argv[])
         ImGui::NewFrame();
         // *************************************************************************
 
+        // part 1
+        // bind to framebuffer and draw scene as we normally would to color texture
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastTime;
         lastTime = currentFrame;
-
-        glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         float radius = 5.0f;
         float camX = sin(currentFrame * 0.5) * radius;
@@ -284,6 +329,16 @@ int main(int argc, char *argv[])
         }
         sceneShader.setBool("isRGBA", false);
 
+        // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        frameShader.use();
+        glBindVertexArray(quadVAO);
+        glBindTexture(GL_TEXTURE_2D, texBuffer);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
         // 渲染 gui
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -342,10 +397,12 @@ void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
         camera.ProcessMouseMovement(xoffset, yoffset, TRANSLATION);
+        flag = true;
     }
     else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
     {
         camera.ProcessMouseMovement(xoffset, yoffset, ROTATION);
+        flag = false;
     }
 }
 
