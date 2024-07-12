@@ -112,7 +112,6 @@ while(){
 
 那最终的效果和之前没太大差别，这里可以通过切换渲染模式，来看此次学习内容的效果。
 
-
 ```c++
 // 线框模式
 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -120,7 +119,175 @@ glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 ```
 
+**普通模式**
+
+![](img/1.png)
+
+**线框模式**
+
+![](img/2.png)
+
+**vertex shader**
+
+```glsl
+#version 330 core
+layout(location = 0) in vec3 Position;
+layout(location = 1) in vec3 Normal;
+layout(location = 2) in vec2 TexCoords;
+out vec2 outTexCoord;
+
+void main() {
+    gl_Position = vec4(Position.x, Position.y, 0.0f, 1.0f);
+    outTexCoord = TexCoords;
+}
+```
+
+**fragment shader**
+
+```glsl
+#version 330 core
+out vec4 FragColor;
+in vec2 outTexCoord;
+
+uniform sampler2D screenTexture;
+
+void main() {
+    FragColor = texture(screenTexture, outTexCoord);
+}
+```
+
 <br>
 <br>
 
------------
+---
+
+## 后期处理
+
+### 反相
+
+```glsl
+vec3 texColor = 1.0 - texture(screenTexture, outTexCoord).rgb;
+FragColor = vec4(texColor, 1.0);
+```
+
+![](img/3.png)
+
+<br>
+<br>
+
+### 灰度
+
+```glsl
+vec3 texColor = texture(screenTexture, outTexCoord).rgb;
+float average = 0.2126 * texColor.r + 0.7152 * texColor.g + 0.0722 * texColor.b;
+FragColor = vec4(vec3(average), 1.0);
+```
+
+
+![](img/4.png)
+
+<br>
+<br>
+
+### 核效果
+
+核(Kernel)（或卷积矩阵(Convolution Matrix)）是一个类矩阵的数值数组，它的中心为当前的像素，它会用它的核值乘以周围的像素值，并将结果相加变成一个值。所以，基本上我们是在对当前像素周围的纹理坐标添加一个小的偏移量，并根据核将结果合并。
+下面是核的一个例子：
+
+
+$$
+\begin{pmatrix}
+2 & 2 & 2 \\
+2 & -15 & 2 \\
+2 & 2 & 2 \\
+\end{pmatrix}
+$$
+
+这个核取了8个周围像素值，将它们乘以2，而把当前的像素乘以-15。这个核的例子将周围的像素乘上了一个权重，并将当前像素乘以一个比较大的负权重来平衡结果。
+
+你在网上找到的大部分核将所有的权重加起来之后都应该会等于1，如果它们加起来不等于1，这就意味着最终的纹理颜色将会比原纹理值更亮或者更暗了。
+
+<br>
+
+#### 锐化核
+
+```glsl
+#version 330 core
+out vec4 FragColor;
+in vec2 outTexCoord;
+
+uniform sampler2D screenTexture;
+
+const float offset = 1.0 / 300.0;
+void main() {
+    // 核效果
+    // 锐化(Sharpen)核
+    const float offset = 1.0 / 300.0;
+    vec2 offsets[9] = vec2[](
+        vec2(-offset,  offset), // 左上
+        vec2( 0.0f,    offset), // 正上
+        vec2( offset,  offset), // 右上
+        vec2(-offset,  0.0f),   // 左
+        vec2( 0.0f,    0.0f),   // 中
+        vec2( offset,  0.0f),   // 右
+        vec2(-offset, -offset), // 左下
+        vec2( 0.0f,   -offset), // 正下
+        vec2( offset, -offset)  // 右下
+    );
+    float kernel[9] = float[](
+        -1, -1, -1,
+        -1,  9, -1,
+        -1, -1, -1
+    );
+
+    vec3 sampleTex[9];
+    for(int i = 0; i < 9; ++i)
+    {
+        sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
+    }
+    vec3 col = vec3(0.0);
+    for(int i = 0; i < 9; ++i)
+    {
+        col += sampleTex[i] * kernel[i];
+    }
+    FragColor = vec4(col, 1.0);
+}
+```
+
+![](img/5.png)
+
+
+<br>
+
+#### 模糊 Blur
+
+更改卷积矩阵
+
+```glsl
+float kernel[9] = float[](
+    1.0 / 16, 2.0 / 16, 1.0 / 16,
+    2.0 / 16, 4.0 / 16, 2.0 / 16,
+    1.0 / 16, 2.0 / 16, 1.0 / 16  
+);
+```
+
+![](img/6.png)
+
+
+<br>
+
+#### 边缘检测 Edge-detection
+
+```glsl
+  float kernel[9] = float[] (
+      1.0, 1.0, 1.0, 
+      1.0, -8.0, 1.0, 
+      1.0, 1.0, 1.0
+  );
+```
+
+![](img/7.png)
+
+<br>
+
+![](img/8.png)

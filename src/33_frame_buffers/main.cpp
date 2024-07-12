@@ -36,7 +36,7 @@ using namespace std;
 using namespace mySpace;
 bool stopPainting = false;
 bool flag = false;
-
+int renderType = 0;
 int main(int argc, char *argv[])
 {
     Shader::dirName = argv[1];
@@ -335,6 +335,7 @@ int main(int argc, char *argv[])
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         frameShader.use();
+        frameShader.setInt("renderType", renderType);
         glBindVertexArray(quadVAO);
         glBindTexture(GL_TEXTURE_2D, texBuffer);
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -346,6 +347,7 @@ int main(int argc, char *argv[])
         glfwPollEvents();
     }
 
+    glDeleteFramebuffers(1, &fbo);
     planeGeometry.dispose();
     boxGeometry.dispose();
     sphereGeometry.dispose();
@@ -365,6 +367,31 @@ void processInput(GLFWwindow *window)
         stopPainting = !stopPainting;
     }
 
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+    {
+        renderType = 1;
+    }
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+    {
+        renderType = 2;
+    }
+    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+    {
+        renderType = 3;
+    }
+    if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
+    {
+        renderType = 4;
+    }
+    if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
+    {
+        renderType = 5;
+    }
+    if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS)
+    {
+        renderType = 6;
+    }
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         action = FORWARD;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -377,10 +404,10 @@ void processInput(GLFWwindow *window)
         action = UP;
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         action = DOWN;
-    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
-        action = ROTATEL;
-    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
-        action = ROTATER;
+    // if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+    //     action = ROTATEL;
+    // if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+    //     action = ROTATER;
     camera.ProcessKeyboard(action, deltaTime);
 }
 

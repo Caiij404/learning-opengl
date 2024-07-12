@@ -42,3 +42,15 @@ cutoff angle 切光角
 
 incident n.发生的事（不寻常或讨厌）；（两国）冲突，摩擦； adj.附带的；**射入的**
 `reflect`方法的第一个参数`I`指的就是`incident vector` —— 射入向量
+
+post-processing 后期处理
+
+grayscale 灰度化
+
+Inversion 反相
+
+weighted adj.有利于 v.**加权**；使负重
+
+Sharpen 锐化
+
+Blur 模糊
