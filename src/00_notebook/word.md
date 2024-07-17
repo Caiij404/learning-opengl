@@ -54,3 +54,5 @@ weighted adj.有利于 v.**加权**；使负重
 Sharpen 锐化
 
 Blur 模糊
+
+Built-in Variable 内建变量

@@ -7,6 +7,9 @@ using namespace std;
 namespace mySpace
 {
 
+    int SCREEN_WIDTH = 800;
+    int SCREEN_HEIGHT = 600;
+
     GLFWwindow *initWindow(int w, int h, const char *name)
     {
         glfwInit();
