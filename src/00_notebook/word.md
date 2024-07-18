@@ -56,3 +56,5 @@ Sharpen 锐化
 Blur 模糊
 
 Built-in Variable 内建变量
+
+spacing 间距 间隔
