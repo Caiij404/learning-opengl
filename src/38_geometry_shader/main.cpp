@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
 
     Shader explodeShader("./shader/explode_vert.glsl", "./shader/explode_frag.glsl", "./shader/explode_geom.glsl");
     Shader skyBoxShader("./shader/cube_map_vert.glsl", "./shader/cube_map_frag.glsl");
+    Shader normalShader("./shader/normal_vert.glsl", "./shader/normal_frag.glsl", "./shader/normal_geom.glsl");
     BoxGeometry skyBox(1.0f, 1.0f, 1.0f); // 天空盒
 
     // 立方体贴图
@@ -83,7 +84,7 @@ int main(int argc, char *argv[])
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastTime;
         lastTime = currentFrame;
-
+ 
         glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -100,6 +101,12 @@ int main(int argc, char *argv[])
         explodeShader.setMat4("model", model);
         explodeShader.setFloat("time", time);
         ourModel.Draw(explodeShader);
+
+        normalShader.use();
+        normalShader.setMat4("projection", projection);
+        normalShader.setMat4("view", view);
+        normalShader.setMat4("model", model);
+        ourModel.Draw(normalShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

@@ -163,3 +163,5 @@ vec4 explode(vec4 position, vec3 normal)
     return position + vec4(direction, 0.0);
 }
 ```
+
+### 法向量可视化
