@@ -28,8 +28,15 @@ public:
         ImGui_ImplOpenGL3_Init("#version 330");
     }
 
-    string createFrameInfo(){
+    void createSliderFloat(string name, float &val, float min, float max)
+    {
+        ImGui::Begin("Float Slider");
+        ImGui::SliderFloat(name.c_str(), &val, min, max);
+        ImGui::End();
+    }
 
+    string createFrameInfo()
+    {
         float frame = ImGui::GetIO().Framerate;
         int fps_value = (int)round(frame);
         int ms_value = (int)round(1000.0f / frame);
@@ -38,10 +45,6 @@ public:
         std::string ms = std::to_string(ms_value);
         std::string newTitle = "LearnOpenGL - " + ms + " ms/frame " + FPS;
         glfwSetWindowTitle(window, newTitle.c_str());
-
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
     }
 
     void render()
@@ -49,5 +52,12 @@ public:
         // 渲染 gui
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
+
+    void newFrame()
+    {
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
     }
 };

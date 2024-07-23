@@ -17,7 +17,7 @@ namespace mySpace
         const char *glsl_version = "#version 330";
 
         // 片段着色器将作用域每一个采样点（采用4倍抗锯齿，则每个像素有4个片段（四个采样点））
-        // glfwWindowHint(GLFW_SAMPLES, 4);
+        glfwWindowHint(GLFW_SAMPLES, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -44,6 +44,9 @@ namespace mySpace
         // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         // glEnable(GL_DEPTH_TEST);
+
+        // 多重采样抗锯齿
+        glEnable(GL_MULTISAMPLE);
 
         return window;
     };
