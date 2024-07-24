@@ -47,6 +47,17 @@ public:
         glfwSetWindowTitle(window, newTitle.c_str());
     }
 
+    void createButtonSwitchBool(bool &val)
+    {
+        ImVec2 buttonSize = ImVec2(80, 20);
+        ImGui::Begin("imgui");
+        if(ImGui::Button("switch", buttonSize))
+        {
+            val = !val;
+        }
+        ImGui::End();
+    }
+
     void render()
     {
         // 渲染 gui

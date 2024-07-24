@@ -46,58 +46,64 @@ int main(int argc, char *argv[])
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
+    PlaneGeometry floor(10.0f, 10.0f);
     GLuint floorMap = loadTexture("./static/texture/wood.png");
 
-    DirLight dLight;
-    dLight.direction = glm::vec3(0, 1, -1);
+    // DirLight dLight;
+    // dLight.direction = glm::vec3(0, 1, -1);
 
-    float cutoffAngle = 12.5f;
-    float deltaAngle = 5.0f;
-    SpotLight sLight;
-    sLight.cutoff = cos(glm::radians(cutoffAngle));
-    sLight.outerCutoff = cos(glm::radians(cutoffAngle + deltaAngle));
-    sLight.position = glm::vec3(0, 5, 0);
-    sLight.direction = glm::vec3(0, -1, 0);
+    // float cutoffAngle = 12.5f;
+    // float deltaAngle = 5.0f;
+    // SpotLight sLight;
+    // sLight.cutoff = cos(glm::radians(cutoffAngle));
+    // sLight.outerCutoff = cos(glm::radians(cutoffAngle + deltaAngle));
+    // sLight.position = glm::vec3(0, 5, 0);
+    // sLight.direction = glm::vec3(0, -1, 0);
 
-    PointLight pLight;
-    pLight.position = glm::vec3(3,3,-3);
+    // PointLight pLight;
+    // pLight.position = glm::vec3(3, 3, -3);
 
-    AttenuationFactor aFactor;
+    // AttenuationFactor aFactor;
 
-    Shader lightShader("./shader/blinn_phong_vert.glsl", "./shader/blinn_phong_frag.glsl");
+    Shader lightShader("./shader/blinn_phong_vert.glsl", "./shader/frag.glsl");
     lightShader.use();
-    lightShader.setInt("material0.specular", 0);
-    lightShader.setInt("material0.diffuse", 0);
+    // lightShader.setInt("material0.specular", 0);
+    // lightShader.setInt("material0.diffuse", 0);
 
-    lightShader.setVec3("dLight.direction", dLight.direction);
-    lightShader.setVec3("dLight.ambient", dLight.ambient);
-    lightShader.setVec3("dLight.diffuse", dLight.diffuse);
-    lightShader.setVec3("dLight.specular", dLight.specular);
+    // lightShader.setVec3("dLight.direction", dLight.direction);
+    // lightShader.setVec3("dLight.ambient", dLight.ambient);
+    // lightShader.setVec3("dLight.diffuse", dLight.diffuse);
+    // lightShader.setVec3("dLight.specular", dLight.specular);
 
-    lightShader.setVec3("pLight.ambient", pLight.ambient);
-    lightShader.setVec3("pLight.diffuse", pLight.diffuse);
-    lightShader.setVec3("pLight.specular", pLight.specular);
-    lightShader.setVec3("pLight.position", pLight.position);
+    // lightShader.setVec3("pLight.ambient", pLight.ambient);
+    // lightShader.setVec3("pLight.diffuse", pLight.diffuse);
+    // lightShader.setVec3("pLight.specular", pLight.specular);
+    // lightShader.setVec3("pLight.position", pLight.position);
 
-    lightShader.setFloat("aFactor.constant", aFactor.constant);
-    lightShader.setFloat("aFactor.linear", aFactor.linear);
-    lightShader.setFloat("aFactor.quadratic", aFactor.quadratic);
+    // lightShader.setFloat("aFactor.constant", aFactor.constant);
+    // lightShader.setFloat("aFactor.linear", aFactor.linear);
+    // lightShader.setFloat("aFactor.quadratic", aFactor.quadratic);
 
-    lightShader.setVec3("sLight.ambient",sLight.ambient);
-    lightShader.setVec3("sLight.diffuse",sLight.diffuse);
-    lightShader.setVec3("sLight.specular",sLight.specular);
-    lightShader.setVec3("sLight.position",sLight.position);
-    lightShader.setVec3("sLight.direction",sLight.direction);
-    lightShader.setFloat("sLight.cutoff", sLight.cutoff);
-    lightShader.setFloat("sLight.outerCutoff", sLight.outerCutoff);
+    // lightShader.setVec3("sLight.ambient", sLight.ambient);
+    // lightShader.setVec3("sLight.diffuse", sLight.diffuse);
+    // lightShader.setVec3("sLight.specular", sLight.specular);
+    // lightShader.setVec3("sLight.position", sLight.position);
+    // lightShader.setVec3("sLight.direction", sLight.direction);
+    // lightShader.setFloat("sLight.cutoff", sLight.cutoff);
+    // lightShader.setFloat("sLight.outerCutoff", sLight.outerCutoff);
 
     // -----------------------------------------------------------------------------
     // -----------------------------------------------------------------------------
 
+    lightShader.setFloat("uvScale", 6.0f);
+    lightShader.setVec3("lightPos", glm::vec3(0, 0.5, 0));
 
     glm::mat4 projection = glm::perspective(camera.Zoom, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
-
+    lightShader.setMat4("projection", projection);
+    glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1, 0, 0));
+    lightShader.setMat4("model", model);
     glEnable(GL_DEPTH_TEST);
+    bool blinn = false;
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
@@ -111,9 +117,32 @@ int main(int argc, char *argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         gui.newFrame();
         gui.createFrameInfo();
-        gui.createSliderFloat("SpotLight cutoffAngle", cutoffAngle, 3.0f, 25.0f);
-        gui.createSliderFloat("SpotLight deltaAngle", deltaAngle, 0.0f, 10.0f);
+        gui.createButtonSwitchBool(blinn);
+        // gui.createSliderFloat("SpotLight cutoffAngle", cutoffAngle, 3.0f, 25.0f);
+        // gui.createSliderFloat("SpotLight deltaAngle", deltaAngle, 0.0f, 10.0f);
 
+        glm::vec3 viewPos = camera.Position;
+        glm::mat4 view = camera.GetViewMatrix();
+
+        // lightShader.use();
+        // sLight.cutoff = cos(glm::radians(cutoffAngle));
+        // sLight.outerCutoff = cos(glm::radians(cutoffAngle + deltaAngle));
+        // lightShader.setFloat("sLight.cutoff", sLight.cutoff);
+        // lightShader.setFloat("sLight.outerCutoff", sLight.outerCutoff);
+        lightShader.setVec3("viewPos", viewPos);
+        lightShader.setMat4("view", view);
+        lightShader.setBool("blinn", blinn);
+        if(blinn)
+        {
+            cout<<"true"<<endl;
+        }
+        else
+        {
+            cout<<"false"<<endl;
+        }
+
+        glBindVertexArray(floor.vao);
+        glDrawElements(GL_TRIANGLES, floor.indices.size(), GL_UNSIGNED_INT, 0);
 
         gui.render();
         glfwSwapBuffers(window);
