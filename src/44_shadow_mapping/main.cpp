@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     GLuint floorMap = loadTexture("./static/texture/wood.png");
     GLuint brickMap = loadTexture("./static/texture/brick_diffuse.jpg"); // 砖墙
 
-    PlaneGeometry floor(10.0f, 10.0f);
+    PlaneGeometry floor(15.0f, 15.0f);
     BoxGeometry brick(1.0f, 1.0f, 1.0f);
     SphereGeometry pointLightGeometry(0.06, 10.0, 10.0); // 点光源位置显示
     PlaneGeometry quadGeometry(6.0, 6.0);                // 测试面板
@@ -79,8 +79,13 @@ int main(int argc, char *argv[])
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = {1.0, 1.0, 1.0, 1.0};
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
     // 3.把生成的纹理作为帧缓冲的深度缓冲
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
@@ -108,6 +113,10 @@ int main(int argc, char *argv[])
     finalShadowShader.use();
     finalShadowShader.setInt("diffuseTexture", 0);
     finalShadowShader.setInt("shadowMap", 1);
+    float x = 0.0f;
+    float y = 0.0f;
+    float times = 1.0f;
+    float r = 5.0f;
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
@@ -116,6 +125,14 @@ int main(int argc, char *argv[])
         deltaTime = currentFrame - lastTime;
         lastTime = currentFrame;
 
+        float timeValue = glfwGetTime();
+        lightPosition = glm::vec3(r * sin(timeValue), 3.0, r * cos(timeValue));
+        gui.newFrame();
+        gui.createFrameInfo();
+        gui.createSliderFloat("x", x, -10.0f, 10.0f);
+        gui.createSliderFloat("y", y, -10.0f, 10.0f);
+        gui.createSliderFloat("Times", times, 1.0f, 10.0f);
+
         glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
         // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -123,20 +140,31 @@ int main(int argc, char *argv[])
 
         // 渲染深度贴图
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        // glEnable(GL_CULL_FACE);
+        // glCullFace(GL_FRONT);
+
+        // PCF柔和阴影 提高深度贴图分辨率，即贴图宽高
+        // 调整times。但也不可太高，高分辨率GPU不太行的话，运行帧率会下降的，特别是5.0后
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH * times, SHADOW_HEIGHT * times, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
         lightView = glm::lookAt(lightPosition, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         lightSpaceMat = lightProjection * lightView;
         shadowShader.use();
         shadowShader.setMat4("lightSpaceMat", lightSpaceMat);
         model = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1, 0, 0));
         shadowShader.setMat4("model", model);
-        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glViewport(0, 0, SHADOW_WIDTH * times, SHADOW_HEIGHT * times);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
         drawMesh(floor);
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0.5, 0));
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(x, 0.5, y));
         shadowShader.setMat4("model", model);
         drawMesh(brick);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // glCullFace(GL_BACK);
+        // glDisable(GL_CULL_FACE);
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
         glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -144,6 +172,7 @@ int main(int argc, char *argv[])
 
         projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
         view = camera.GetViewMatrix();
+
         finalShadowShader.use();
         finalShadowShader.setMat4("view", view);
         finalShadowShader.setMat4("projection", projection);
@@ -164,11 +193,10 @@ int main(int argc, char *argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, brickMap);
 
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0.5, 0));
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(x, 0.5, y));
         finalShadowShader.setMat4("model", model);
         finalShadowShader.setFloat("uvScale", 1.0);
         drawMesh(brick);
-
 
         // 显示深度贴图
         // *************************************************
@@ -188,7 +216,7 @@ int main(int argc, char *argv[])
 
         drawLightObject(lightObjectShader, pointLightGeometry, lightPosition);
 
-
+        gui.render();
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

@@ -28,23 +28,24 @@ float shadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 frag2light) {
     float bias = max(0.05 * (1.0 - dot(normal, frag2light)), 0.005);
 
     // 检查当前片段是否在阴影中
-    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    // float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    // float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
 
     // PCF
-    // float shadow = 0.0;
-    // vec2 texSize = 1.0 / textureSize(shadowMap, 0);
-    // for(int i = -1; i <= 1; ++i) {
-    //     for(int j = -1; j <= 1; ++j) {
-    //         float pcfDepth = texture(shadowMap, projCoords.xy + vec2(i, j) * texSize).r;
-    //         shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
-    //     }
-    // }
-    // shadow /= 9.0;
+    float shadow = 0.0;
+    vec2 texSize = 1.0 / textureSize(shadowMap, 0);
+    for(int i = -1; i <= 1; ++i) {
+        for(int j = -1; j <= 1; ++j) {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(i, j) * texSize).r;
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+        }
+    }
+    shadow /= 9.0;
 
-    // // 解决cl_clamp_to_border不起作用问题
-    // if(projCoords.z > 1.0) {
-    //     shadow = 0.0;
-    // }
+    // 解决cl_clamp_to_border不起作用问题
+    if(projCoords.z > 1.0) {
+        shadow = 0.0;
+    }
 
     return shadow;
 }
