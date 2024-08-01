@@ -19,5 +19,5 @@ void main() {
     vs_out.FragPos = vec3(model * vec4(Position, 1.0));
     vs_out.Normal = transpose(inverse(mat3(model))) * (reverse_normal * Normal);
     vs_out.TexCoords = TexCoords * uvScale;
-    gl_Position = projection * view * vec4(vs_out.FragPos, 1.0);
+    gl_Position = projection * view * model * vec4(Position, 1.0);
 }

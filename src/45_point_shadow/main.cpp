@@ -49,22 +49,19 @@ int main(int argc, char *argv[])
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    // glEnable(GL_FRAMEBUFFER_SRGB);
-
-    Shader shadowShader("./shader/shadow_map_vert.glsl", "./shader/shadow_map_frag.glsl", "./shader/shadow_map_geom.glsl");
+    Shader depthMapShader("./shader/shadow_map_vert.glsl", "./shader/shadow_map_frag.glsl", "./shader/shadow_map_geom.glsl");
     Shader sceneShader("./shader/shadow_final_vert.glsl", "./shader/shadow_final_frag.glsl");
     Shader lightObjectShader("./shader/light_object_vert.glsl", "./shader/light_object_frag.glsl");
-    Shader quadShader("./shader/shadow_quad_vert.glsl", "./shader/shadow_quad_frag.glsl");
 
     GLuint floorMap = loadTexture("./static/texture/wood.png");
     GLuint brickMap = loadTexture("./static/texture/brick_diffuse.jpg"); // 砖墙
 
     // PlaneGeometry floor(15.0f, 15.0f);
-    BoxGeometry brick(1.0f, 1.0f, 1.0f);
+    // BoxGeometry brick(1.0f, 1.0f, 1.0f);
     BoxGeometry boxGeometry(1.0, 1.0, 1.0);
-    BoxGeometry floorGeometry(10.0, 0.0001, 10.0);
+    // BoxGeometry floorGeometry(10.0, 0.0001, 10.0);
     SphereGeometry pointLightGeometry(0.06, 10.0, 10.0); // 点光源位置显示
-    PlaneGeometry quadGeometry(6.0, 6.0);                // 测试面板
+    // PlaneGeometry quadGeometry(6.0, 6.0);                // 测试面板
 
     // 定义是个不同的箱子位置
     vector<glm::vec3> cubePositions{
@@ -73,7 +70,7 @@ int main(int argc, char *argv[])
         glm::vec3(-2.5f, -1.0f, 0.0),
         glm::vec3(-1.5f, 1.0f, 1.5),
         glm::vec3(-1.5f, 2.0f, -2.5)};
- 
+
     // 阴影贴图
     // 1.创建帧缓冲
     GLuint depthMapFBO;
@@ -84,18 +81,21 @@ int main(int argc, char *argv[])
     GLuint depthCubeMap;
     glGenTextures(1, &depthCubeMap);
     glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubeMap);
-    for (int i = 0; i < 6; ++i)
+    for (unsigned int i = 0; i < 6; ++i)
     {
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     }
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    // float borderColor[] = {1.0, 1.0, 1.0, 1.0};
-    // glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    // 这个参数写成2D的，一直出不来阴影，找了半天，倒是找出了好几处其他错误.....
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     // 3.把生成的纹理作为帧缓冲的深度缓冲
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
@@ -110,38 +110,30 @@ int main(int argc, char *argv[])
     // 投影矩阵在每个方向上都是不变的，6个面可以使用同一个
     float aspect = (float)SHADOW_WIDTH / SHADOW_HEIGHT;
     float near = 1.0f, far = 25.0f, fov = glm::radians(90.0f);
-    glm::vec3 lightPosition = glm::vec3(-2.0f, 3.0f, -1.0f); // 光照位置
-    glm::mat4 lightProjection = glm::perspective(fov, aspect, near, far);
-    // 6个方向上的lookAt，按右 左 上 下 近 远顺序生成
-    std::vector<glm::mat4> lightViews;
-    lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
-    lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
-    lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
-    lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
-    lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
-    lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
+    glm::vec3 lightPosition = glm::vec3(-2.0f, 0.0f, 0.0f); // 光照位置
+    // glm::mat4 lightProjection = glm::perspective(fov, aspect, near, far);
+    // // 6个方向上的lookAt，按右 左 上 下 近 远顺序生成
+    // std::vector<glm::mat4> lightViews;
+    // lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+    // lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+    // lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
+    // lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
+    // lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
+    // lightViews.push_back(glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
 
-    std::vector<glm::mat4> shadowProj;
-    for (int i = 0; i < lightViews.size(); ++i)
-    {
-        shadowProj.push_back(lightProjection * lightViews[i]);
-    }
+    // std::vector<glm::mat4> shadowProj;
+    // for (int i = 0; i < lightViews.size(); ++i)
+    // {
+    //     shadowProj.push_back(lightProjection * lightViews[i]);
+    // }
 
     glm::mat4 model(1.0f), view(1.0f);
-
-    quadShader.use();
-    quadShader.setInt("depthMap", 0);
-
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
     glEnable(GL_DEPTH_TEST);
 
     sceneShader.use();
     sceneShader.setInt("diffuseTexture", 0);
-    sceneShader.setInt("shadowMap", 1);
-    float x = 0.0f;
-    float y = 0.0f;
-    float times = 1.0f;
-    float r = 5.0f;
+    sceneShader.setInt("depthMap", 1);
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
@@ -151,45 +143,54 @@ int main(int argc, char *argv[])
         lastTime = currentFrame;
 
         float timeValue = glfwGetTime();
-        // lightPosition = glm::vec3(r * sin(timeValue), 3.0, r * cos(timeValue));
         gui.newFrame();
         gui.createFrameInfo();
-        gui.createSliderFloat("x", x, -10.0f, 10.0f);
-        gui.createSliderFloat("y", y, -10.0f, 10.0f);
-        gui.createSliderFloat("Times", times, 1.0f, 10.0f);
 
         glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
 
         // 渲染深度贴图
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        // PCF柔和阴影 提高深度贴图分辨率，即贴图宽高
-        // 调整times。但也不可太高，高分辨率GPU不太行的话，运行帧率会下降的，特别是5.0后
-        // glBindTexture(GL_TEXTURE_2D, depthCubeMap);
-        // glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH * times, SHADOW_HEIGHT * times, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-        // glBindTexture(GL_TEXTURE_2D, 0);
+        glm::mat4 shadowProj = glm::perspective(fov, aspect, near, far);
+        std::vector<glm::mat4> shadowTransforms;
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPosition, lightPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPosition, lightPosition + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
+        shadowTransforms.push_back(shadowProj * glm::lookAt(lightPosition, lightPosition + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
 
-        glViewport(0, 0, SHADOW_WIDTH * times, SHADOW_HEIGHT * times);
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
         glClear(GL_DEPTH_BUFFER_BIT);
 
-        shadowShader.use();
-        for (int i = 0; i < 6; ++i)
+        depthMapShader.use();
+        for (int i = 0; i < shadowTransforms.size(); ++i)
         {
-            shadowShader.setMat4("shadowMatrices[" + std::to_string(i) + "]", shadowProj[i]);
+            depthMapShader.setMat4("shadowMatrices[" + std::to_string(i) + "]", shadowTransforms[i]);
         }
-        shadowShader.setVec3("lightPos", lightPosition);
-        shadowShader.setFloat("far_plane", far);
-        model = glm::scale(model, glm::vec3(7, 7, 7));
+        depthMapShader.setFloat("far_plane", far);
+        depthMapShader.setVec3("lightPos", lightPosition);
+
+        model = glm::scale(glm::mat4(1.0f), glm::vec3(7, 7, 7));
+        depthMapShader.setMat4("model", model);
         // 绘制大箱子
         drawMesh(boxGeometry);
 
         // 绘制多个箱子
         for (int i = 0; i < cubePositions.size(); ++i)
         {
-            model = glm::translate(glm::mat4(1.0f), cubePositions[i]);
+            // model = glm::translate(glm::mat4(1.0f), cubePositions[i]);
+            // float angle = 10.0f * i;
+            // model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 2.0f, 3.0f));
+            // depthMapShader.setMat4("model", model);
+            // drawMesh(boxGeometry);
+
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePositions[i]);
             float angle = 10.0f * i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 2.0f, 3.0f));
-            shadowShader.setMat4("model", model);
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+
+            depthMapShader.setMat4("model", model);
             drawMesh(boxGeometry);
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -207,14 +208,14 @@ int main(int argc, char *argv[])
         sceneShader.setVec3("viewPos", camera.Position);
         sceneShader.setFloat("far_plane", far);
         sceneShader.setVec3("lightPos", lightPosition);
-        sceneShader.setFloat("uvScale", 4.0f);
+        // sceneShader.setFloat("uvScale", 4.0f);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, floorMap);
 
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, depthCubeMap);
-  
+        glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubeMap);
+
         model = glm::scale(glm::mat4(1.0f), glm::vec3(7, 7, 7));
         sceneShader.setMat4("model", model);
         sceneShader.setFloat("uvScale", 1.0f);
@@ -227,31 +228,24 @@ int main(int argc, char *argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, brickMap);
 
-        for (int i = 0; i < 6; ++i)
+        for (int i = 0; i < cubePositions.size(); ++i)
         {
+            // float angle = 10.0f * i;
+            // model = glm::translate(glm::mat4(1.0f), cubePositions[i]);
+            // model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 2.0f, 3.0f));
+            // sceneShader.setMat4("model", model);
+            // sceneShader.setInt("reverse_normal", 1);
+            // drawMesh(boxGeometry);
+
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePositions[i]);
             float angle = 10.0f * i;
-            model = glm::translate(glm::mat4(1.0f), cubePositions[i]);
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 2.0f, 3.0f));
-            sceneShader.setMat4("model",model);
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+
+            sceneShader.setMat4("model", model);
             sceneShader.setInt("reverse_normal", 1);
             drawMesh(boxGeometry);
         }
-
-        // 显示深度贴图
-        // *************************************************
-        // quadShader.use();
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, depthMap);
-        // quadShader.setMat4("view", view);
-
-        // // model = glm::mat4(1.0f);
-        // model = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1, 0, 0));
-        // quadShader.setFloat("near_plane", near_plane);
-        // quadShader.setFloat("far_plane", far_plane);
-        // quadShader.setMat4("model", model);
-        // quadShader.setMat4("projection", projection);
-        // drawMesh(quadGeometry);
-        // *************************************************
 
         drawLightObject(lightObjectShader, pointLightGeometry, lightPosition);
 
@@ -260,6 +254,8 @@ int main(int argc, char *argv[])
         glfwPollEvents();
     }
 
+    boxGeometry.dispose();
+    pointLightGeometry.dispose();
     glfwTerminate();
     return 0;
 }
