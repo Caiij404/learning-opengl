@@ -134,6 +134,8 @@ int main(int argc, char *argv[])
     sceneShader.use();
     sceneShader.setInt("diffuseTexture", 0);
     sceneShader.setInt("depthMap", 1);
+    float tmp = 0.0f;
+    float bias = 0.05;
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
@@ -145,11 +147,14 @@ int main(int argc, char *argv[])
         float timeValue = glfwGetTime();
         gui.newFrame();
         gui.createFrameInfo();
+        gui.createSliderFloat("time", tmp, 0.0, 0.1);
+        gui.createSliderFloat("bias", bias, 0.05, 0.55);
 
         glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
 
         // 渲染深度贴图
         // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        lightPosition.x += sin(timeValue) * tmp;
         glm::mat4 shadowProj = glm::perspective(fov, aspect, near, far);
         std::vector<glm::mat4> shadowTransforms;
         shadowTransforms.push_back(shadowProj * glm::lookAt(lightPosition, lightPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
@@ -186,9 +191,9 @@ int main(int argc, char *argv[])
             // drawMesh(boxGeometry);
 
             model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
+            model = glm::translate(glm::mat4(1.0f), cubePositions[i]);
             float angle = 10.0f * i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            // model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
 
             depthMapShader.setMat4("model", model);
             drawMesh(boxGeometry);
@@ -203,6 +208,7 @@ int main(int argc, char *argv[])
         view = camera.GetViewMatrix();
 
         sceneShader.use();
+        sceneShader.setFloat("bias", bias);
         sceneShader.setMat4("view", view);
         sceneShader.setMat4("projection", projection);
         sceneShader.setVec3("viewPos", camera.Position);
@@ -238,9 +244,9 @@ int main(int argc, char *argv[])
             // drawMesh(boxGeometry);
 
             model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            float angle = 10.0f * i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            model = glm::translate(glm::mat4(1.0f), cubePositions[i]);
+            // float angle = 10.0f * i;
+            // model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
 
             sceneShader.setMat4("model", model);
             sceneShader.setInt("reverse_normal", 1);
@@ -297,13 +303,13 @@ void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
 
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
     {
-        camera.ProcessMouseMovement(xoffset, yoffset, TRANSLATION);
+        // camera.ProcessMouseMovement(xoffset, yoffset, TRANSLATION);
     }
     else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
     {
         camera.ProcessMouseMovement(xoffset, yoffset, ROTATION);
     }
-}
+} 
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
 {
