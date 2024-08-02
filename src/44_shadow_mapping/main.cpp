@@ -179,6 +179,10 @@ int main(int argc, char *argv[])
         finalShadowShader.setVec3("viewPos", camera.Position);
         finalShadowShader.setMat4("lightSpaceMat", lightSpaceMat);
         finalShadowShader.setVec3("lightPos", lightPosition);
+        // OpenGL学习的十大未解之谜 一：
+        // 为什么加了这两行代码？相机就自己动起来了？？？
+        bool flag2 = false;
+        finalShadowShader.setBool("flag2", flag2);
         finalShadowShader.setFloat("uvScale", 4.0f);
 
         glActiveTexture(GL_TEXTURE0);
