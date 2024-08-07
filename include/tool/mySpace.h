@@ -57,7 +57,7 @@ namespace mySpace
         glGenTextures(1, &textureID);
 
         // 图像y轴翻转
-        // stbi_set_flip_vertically_on_load();
+        stbi_set_flip_vertically_on_load(true);
         int width, height, nrComponents;
         unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
         if (data)
