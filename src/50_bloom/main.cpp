@@ -63,9 +63,10 @@ int main(int argc, char *argv[])
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    Shader sceneShader("./shader/scene_vert.glsl", "./shader/scene_frag.glsl");
-    Shader hdrShader("./shader/hdr_quad_vert.glsl", "./shader/hdr_quad_frag.glsl");
-    Shader lightObjectShader("./shader/light_object_vert.glsl", "./shader/light_object_frag.glsl");
+    Shader sceneShader("./shader/bloom_scene_vert.glsl", "./shader/bloom_scene_frag.glsl");
+    Shader lightShader("./shader/light_object_vert.glsl", "./shader/light_object_frag.glsl");
+    Shader blurShader("./shader/blur_scene_vert.glsl", "./shader/blur_scene_frag.glsl");
+    Shader finalShader("./shader/bloom_final_vert.glsl", "./shader/bloom_final_frag.glsl");
 
     PlaneGeometry groundGeometry(10.0, 10.0);            // 地面
     PlaneGeometry grassGeometry(1.0, 1.0);               // 草丛
@@ -82,6 +83,7 @@ int main(int argc, char *argv[])
     unsigned int hdrFBO;
     glGenFramebuffers(1, &hdrFBO);
 
+    // 两个颜色缓冲，一个渲染，一个亮度提取
     unsigned int colorBuffers[2];
     glGenTextures(2, colorBuffers);
     for (int i = 0; i < 2; ++i)
@@ -114,6 +116,25 @@ int main(int argc, char *argv[])
         cout << "Framebuffer not complete!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // 创建用于模糊的帧缓冲区
+    unsigned int pingpongFBO[2];
+    unsigned int pingpongColorBuffers[2];
+    glGenFramebuffers(2, pingpongFBO);
+    glGenTextures(2, pingpongColorBuffers);
+    for (int i = 0; i < 2; ++i)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+        glBindTexture(GL_TEXTURE_2D, pingpongColorBuffers[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCREEN_WIDTH, SCREEN_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpongColorBuffers[i], 0);
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cout << "Framebuffer not complete!" << std::endl;
+    }
 
     // 设置平行光光照属性
     sceneShader.use();
