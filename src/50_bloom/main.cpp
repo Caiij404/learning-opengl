@@ -68,11 +68,11 @@ int main(int argc, char *argv[])
     Shader blurShader("./shader/blur_scene_vert.glsl", "./shader/blur_scene_frag.glsl");
     Shader finalShader("./shader/bloom_final_vert.glsl", "./shader/bloom_final_frag.glsl");
 
-    PlaneGeometry groundGeometry(10.0, 10.0);            // 地面
-    PlaneGeometry grassGeometry(1.0, 1.0);               // 草丛
-    BoxGeometry boxGeometry(1.0, 1.0, 1.0);              // 盒子
-    SphereGeometry pointLightGeometry(0.04, 10.0, 10.0); // 点光源位置显示
-    PlaneGeometry quadGeometry(2.0, 2.0);                // hdr输出平面
+    PlaneGeometry groundGeometry(10.0, 10.0);           // 地面
+    PlaneGeometry grassGeometry(1.0, 1.0);              // 草丛
+    BoxGeometry boxGeometry(1.0, 1.0, 1.0);             // 盒子
+    SphereGeometry pointLightGeometry(0.2, 50.0, 50.0); // 点光源位置显示
+    PlaneGeometry quadGeometry(2.0, 2.0);               // hdr输出平面
 
     unsigned int woodMap = loadTexture("./static/texture/wood.png");                         // 地面
     unsigned int brickMap = loadTexture("./static/texture/brick_diffuse.jpg");               // 砖块
@@ -82,6 +82,7 @@ int main(int argc, char *argv[])
 
     unsigned int hdrFBO;
     glGenFramebuffers(1, &hdrFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
 
     // 两个颜色缓冲，一个渲染，一个亮度提取
     unsigned int colorBuffers[2];
@@ -108,8 +109,6 @@ int main(int argc, char *argv[])
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
@@ -139,8 +138,8 @@ int main(int argc, char *argv[])
     // 设置平行光光照属性
     sceneShader.use();
     sceneShader.setVec3("directionLight.ambient", 0.01f, 0.01f, 0.01f);
-    sceneShader.setVec3("directionLight.diffuse", 0.5f, 0.5f, 0.5f); // 将光照调暗了一些以搭配场景
-    sceneShader.setVec3("directionLight.specular", 1.0f, 1.0f, 1.0f);
+    sceneShader.setVec3("directionLight.diffuse", 0.01f, 0.01f, 0.01f); // 将光照调暗了一些以搭配场景
+    sceneShader.setVec3("directionLight.specular", 0.5f, 0.5f, 0.5f);
 
     // 设置衰减
     sceneShader.setFloat("light.constant", 1.0f);
@@ -155,11 +154,18 @@ int main(int argc, char *argv[])
         glm::vec3(1.4f, 2.0f, 1.3f)};
 
     // 点光源颜色
+    // 光源颜色不要忘记调到大于1
+    // glm::vec3 pointLightColors[] = {
+    //     glm::vec3(1.0f, 0.0f, 0.0f),
+    //     glm::vec3(1.0f, 0.0f, 1.0f),
+    //     glm::vec3(0.0f, 0.0f, 1.0f),
+    //     glm::vec3(0.0f, 1.0f, 0.0f)};
+
     glm::vec3 pointLightColors[] = {
-        glm::vec3(1.0f, 0.0f, 0.0f),
-        glm::vec3(1.0f, 0.0f, 1.0f),
-        glm::vec3(0.0f, 0.0f, 1.0f),
-        glm::vec3(0.0f, 1.0f, 0.0f)};
+        glm::vec3(2.0f, 1.0f, 1.0f),
+        glm::vec3(4.0f, 0.0f, 4.0f),
+        glm::vec3(1.0f, 1.0f, 4.0f),
+        glm::vec3(0.0f, 2.0f, 0.0f)};
 
     // 草的位置
     vector<glm::vec3> grassPositions{
@@ -171,9 +177,14 @@ int main(int argc, char *argv[])
 
     glm::vec3 lightPosition = glm::vec3(1.0, 2.5, 2.0); // 光照位置
 
-    hdrShader.use();
-    hdrShader.setInt("hdrBuffer", 0);
+    blurShader.use();
+    blurShader.setInt("image", 0);
 
+    finalShader.use();
+    finalShader.setInt("scene", 0);
+    finalShader.setInt("bloomBlur", 1);
+
+    float intensity = 0.01f;
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
@@ -183,9 +194,12 @@ int main(int argc, char *argv[])
         lastTime = currentFrame;
         gui.newFrame();
         // gui.createFrameInfo();
+        gui.createSliderFloat("intensity", intensity, 0.000, 1.0);
 
         glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
 
+        // --------------------------------------------------
+        // 1.将场景渲染至帧缓冲区
         glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -217,6 +231,8 @@ int main(int argc, char *argv[])
         sceneShader.setMat4("projection", projection);
         sceneShader.setVec3("directionLight.direction", lightPos);
         sceneShader.setVec3("viewPos", camera.Position);
+        sceneShader.setVec3("directionLight.diffuse", intensity, intensity, intensity);
+        sceneShader.setVec3("directionLight.specular", intensity, intensity, intensity);
 
         pointLightPositions[0].z = camz;
         pointLightPositions[0].x = camx;
@@ -285,15 +301,15 @@ int main(int argc, char *argv[])
 
         // 绘制光源
         // **********************************************
-        lightObjectShader.use();
-        lightObjectShader.setMat4("view", view);
-        lightObjectShader.setMat4("projection", projection);
+        lightShader.use();
+        lightShader.setMat4("view", view);
+        lightShader.setMat4("projection", projection);
 
         model = glm::mat4(1.0f);
         model = glm::translate(model, lightPos);
 
-        lightObjectShader.setMat4("model", model);
-        lightObjectShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        lightShader.setMat4("model", model);
+        lightShader.setVec3("lightColor", glm::vec3(2.0f, 2.0f, 2.0f));
 
         drawMesh(pointLightGeometry);
         for (unsigned int i = 0; i < 4; i++)
@@ -301,30 +317,49 @@ int main(int argc, char *argv[])
             model = glm::mat4(1.0f);
             model = glm::translate(model, pointLightPositions[i]);
 
-            lightObjectShader.setMat4("model", model);
-            lightObjectShader.setVec3("lightColor", pointLightColors[i]);
+            lightShader.setMat4("model", model);
+            lightShader.setVec3("lightColor", pointLightColors[i]);
 
             drawMesh(pointLightGeometry);
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // 绘制hdr输出的texture
+        // --------------------------------------------------
+        // 2.高斯模糊明亮片段
+        bool horizontal = true, first_iteration = true;
+        unsigned int amount = 10;
+        blurShader.use();
+        for (unsigned int i = 0; i < amount; ++i)
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]);
+            blurShader.setInt("horizontal", horizontal);
+            glBindTexture(GL_TEXTURE_2D, first_iteration ? colorBuffers[1] : pingpongColorBuffers[!horizontal]);
+            drawMesh(quadGeometry);
+            horizontal = !horizontal;
+            if (first_iteration)
+            {
+                first_iteration = false;
+            }
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // --------------------------------------------------
+        // 3.绘制hdr输出的texture
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        hdrShader.use();
-        hdrShader.setMat4("view", view);
-        hdrShader.setMat4("projection", projection);
-
+        finalShader.use();
         glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, colorBuffer);检查片段输出是否高于阈值
-        hdrShader.setFloat("exposure", 1.0);
+        glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
 
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, pingpongColorBuffers[!horizontal]);
+        finalShader.setInt("bloom", true);
+        finalShader.setFloat("exposure", 1.0);
         model = glm::mat4(1.0f);
         // 不知发什么颠，帧缓冲出来的纹理，贴到平面上居然上下颠倒了，这里手动把平面旋转180°，但鼠标和键盘的相机动作也就反了
         glm::vec3 axis(0, 0, 1);
         model = glm::rotate(model, glm::radians(180.0f), axis);
-        hdrShader.setMat4("model", model);
-
+        finalShader.setMat4("model", model);
         drawMesh(quadGeometry);
 
         gui.render();

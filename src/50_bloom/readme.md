@@ -2,9 +2,9 @@
 
 实现思路：
 
-1. 提取场景光亮纹理1
+1. 提取场景光亮纹理 1
 2. 高斯模糊处理
-3. 使用纹理1
+3. 使用纹理 1
 
 由于模糊滤镜的作用，明亮的区域在宽度和高度上都得到了扩展，因此场景中的明亮区域看起来会发光或流光。
 
@@ -14,7 +14,7 @@
 
 根据上图，我们要从渲染的场景中提取两张图片。可以通过渲染两次，也可以使用`MRT(Multiple Render Targets，多渲染目标)`的技巧，**指定片段着色器输出多个信息**。
 
-**通过布局location标识符，控制片段着色器的输出对应到指定颜色缓冲中。**
+**通过布局 location 标识符，控制片段着色器的输出对应到指定颜色缓冲中。**
 
 ```glsl
 layout (location = 0) out vec4 FragColor;
@@ -74,7 +74,7 @@ void main() {
     // vec3 result = hdrColor / (hdrColor + vec3(1.0));
     // exposure
     vec3 result = vec3(1.0) - exp(-hdrColor * exposure);
-    // also gamma correct while we're at it       
+    // also gamma correct while we're at it
     result = pow(result, vec3(1.0 / gamma));
     FragColor = vec4(result, 1.0);
 
@@ -89,14 +89,14 @@ void main() {
 
 ### 高斯模糊
 
-高斯曲线在它的中间处的面积最大，使用它的值作为权重使得近处的样本拥有最大的优先权。比如，如果我们从fragment的32×32的四方形区域采样，这个权重随着和fragment的距离变大逐渐减小；通常这会得到更好更真实的模糊效果，这种模糊叫做高斯模糊。
+高斯曲线在它的中间处的面积最大，使用它的值作为权重使得近处的样本拥有最大的优先权。比如，如果我们从 fragment 的 32×32 的四方形区域采样，这个权重随着和 fragment 的距离变大逐渐减小；通常这会得到更好更真实的模糊效果，这种模糊叫做高斯模糊。
 
 ![](img/2.png)
 
 实现高斯模糊过滤器，我们需要一个二维权重正方形。
 
--   水平权重
--   垂直权重
+- 水平权重
+- 垂直权重
 
 允许先进行水平模糊，后进行垂直模糊，每个片段就需要进行`32+32=64`次采样。这叫做**两步高斯模糊**。
 
@@ -138,6 +138,65 @@ void main(){
     }
 
     FragColor = vec4(result, 1.0);
-    
+
 }
 ```
+
+## 把两个纹理混合
+
+最后只需要把 HDR 纹理和模糊处理后的光亮纹理混合即可
+
+**bloom_final_frag.glsl**
+
+```glsl
+#version 330 core
+out vec4 FragColor;
+
+in vec2 outTexCoord;
+
+uniform sampler2D scene;
+uniform sampler2D bloomBlur;
+uniform bool bloom;
+uniform float exposure;
+
+void main() {
+	const float gamma = 2.2;
+	vec3 hdrColor = texture(scene, outTexCoord).rgb;
+	vec3 bloomColor = texture(bloomBlur, outTexCoord).rgb;
+	if(bloom) {
+		hdrColor += bloomColor; // additive blending
+	}
+    // tone mapping
+	vec3 result = vec3(1.0) - exp(-hdrColor * exposure);
+    // also gamma correct while we're at it
+	result = pow(result, vec3(1.0 / gamma));
+	FragColor = vec4(hdrColor, 1.0);
+}
+```
+
+---
+
+```cpp
+// 点光源颜色
+// 光源颜色不要忘记调到大于1，不然渲染出来的点光源不会有光晕
+glm::vec3 pointLightColors[] = {
+    glm::vec3(2.0f, 1.0f, 1.0f),
+    glm::vec3(4.0f, 0.0f, 4.0f),
+    glm::vec3(1.0f, 1.0f, 4.0f),
+    glm::vec3(0.0f, 2.0f, 0.0f)};
+```
+
+![](img/4.png)
+
+
+![](img/5.png)
+
+
+地面反光太强，把光强调低些
+
+```cpp
+sceneShader.setVec3("directionLight.diffuse", 0.05f, 0.05f, 0.05f);
+sceneShader.setVec3("directionLight.specular", 0.05f, 0.05f, 0.05f);
+```
+
+![](img/6.png)
