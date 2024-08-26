@@ -19,20 +19,18 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void processInput(GLFWwindow *window);
 
 std::string Shader::dirName;
-int SCREEN_WIDTH = 800;
-int SCREEN_HEIGHT = 600;
 
 // delta time
 float deltaTime = 0.0f;
 float lastTime = 0.0f;
 
-float lastX = SCREEN_WIDTH / 2.0f; // 鼠标上一帧的位置
-float lastY = SCREEN_HEIGHT / 2.0f;
-
 Camera camera(glm::vec3(0.0, 1.0, 6.0));
 #include <tool/mySpace.h>
 using namespace std;
 using namespace mySpace;
+
+float lastX = SCREEN_WIDTH / 2.0f; // 鼠标上一帧的位置
+float lastY = SCREEN_HEIGHT / 2.0f;
 
 int main(int argc, char *argv[])
 {
@@ -83,7 +81,7 @@ int main(int argc, char *argv[])
     float myNear = 0.1;
     glEnable(GL_STENCIL_TEST);
     glStencilFunc(GL_NOTEQUAL, 1, 0xff);
-    // 1.模板测试失败时保留片段 2.模板测试通过但深度测试失败时保留片段 3.模板深度都通过时
+    // 1.模板测试失败时保留stencil缓冲中原本的值 2.模板测试通过但深度测试失败时保留stencil缓冲中原本的值 3.模板深度都通过时替换stencil缓冲中的值为glStencilFunc第2个参数ref的值
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
     while (!glfwWindowShouldClose(window))
     {
@@ -96,13 +94,15 @@ int main(int argc, char *argv[])
         processInput(window);
 
         glEnable(GL_STENCIL_TEST);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        // 1.stencil test fail  2.depth test fail  3.success
+        glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
 
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastTime;
         lastTime = currentFrame;
 
         glClearColor(25.0 / 255.0, 25.0 / 255.0, 25.0 / 255.0, 1.0);
+        // 清空stencil buffer，即全设置为0
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
         float radius = 5.0f;
         float camX = sin(currentFrame * 0.5) * radius;
@@ -145,6 +145,7 @@ int main(int argc, char *argv[])
         glBindVertexArray(planeGeometry.vao);
         glDrawElements(GL_TRIANGLES, planeGeometry.indices.size(), GL_UNSIGNED_INT, 0);
 
+        // 总是通过stencil test，并更新stencil buffer为1
         glStencilFunc(GL_ALWAYS, 1, 0xff);
         glStencilMask(0xff);
         // 绘制砖块
@@ -164,8 +165,10 @@ int main(int argc, char *argv[])
         glDrawElements(GL_TRIANGLES, boxGeometry.indices.size(), GL_UNSIGNED_INT, 0);
 
         // 绘制放大一点点后的砖块
+        // 当stencil buffer的值不为1时通过stencil test(通过则绘制，不通过则丢弃片段discard)，本应该也更新stencil buffer的值为1，但下面一行代码glStencilMask(0x00)，把更新的值变为0
         glStencilFunc(GL_NOTEQUAL, 1, 0xff);
         glStencilMask(0x00);
+        // 关闭深度测试，防止边框被遮挡
         glDisable(GL_DEPTH_TEST);
 
         sceneShader.setFloat("stenci", 1.0);
@@ -265,7 +268,7 @@ void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
     lastX = xpos;
     lastY = ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    // camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
