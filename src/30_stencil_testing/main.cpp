@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
 
         glEnable(GL_STENCIL_TEST);
         // 1.stencil test fail  2.depth test fail  3.success
-        glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastTime;
@@ -268,7 +268,14 @@ void mouse_callback(GLFWwindow *window, double xposIn, double yposIn)
     lastX = xpos;
     lastY = ypos;
 
-    // camera.ProcessMouseMovement(xoffset, yoffset);
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+    {
+        // camera.ProcessMouseMovement(xoffset, yoffset, TRANSLATION);
+    }
+    else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+    {
+        camera.ProcessMouseMovement(xoffset, yoffset, ROTATION);
+    }
 }
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
