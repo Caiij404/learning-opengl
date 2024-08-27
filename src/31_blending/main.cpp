@@ -20,21 +20,18 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void processInput(GLFWwindow *window);
 
 std::string Shader::dirName;
-int SCREEN_WIDTH = 800;
-int SCREEN_HEIGHT = 600;
 
 // delta time
 float deltaTime = 0.0f;
 float lastTime = 0.0f;
-
-float lastX = SCREEN_WIDTH / 2.0f; // 鼠标上一帧的位置
-float lastY = SCREEN_HEIGHT / 2.0f;
 
 Camera camera(glm::vec3(0.0, 1.0, 6.0));
 #include <tool/mySpace.h>
 using namespace std;
 using namespace mySpace;
 bool stopPainting = false;
+float lastX = SCREEN_WIDTH / 2.0f; // 鼠标上一帧的位置
+float lastY = SCREEN_HEIGHT / 2.0f;
 
 int main(int argc, char *argv[])
 {
@@ -94,6 +91,7 @@ int main(int argc, char *argv[])
 
     float myNear = 0.1;
     float x = 0.0f, y = 0.0f, z = 0.0f;
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     while (!glfwWindowShouldClose(window))
@@ -184,21 +182,25 @@ int main(int argc, char *argv[])
             glDrawElements(GL_TRIANGLES, sphereGeometry.indices.size(), GL_UNSIGNED_INT, 0);
         }
 
+        // model = glm::translate(glm::mat4(1.0f), glm::vec3(2, 0.5, 0));
+        // sceneShader.setMat4("model", model);
+        // glBindVertexArray(grassGeometry.vao);
+        // glDrawElements(GL_TRIANGLES, grassGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
+        // model = glm::translate(glm::mat4(1.0f), glm::vec3(4, 0.5, 0));
+        // sceneShader.setMat4("model", model);
+        // glBindVertexArray(grassGeometry.vao);
+        // glDrawElements(GL_TRIANGLES, grassGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+
         // 绘制草地
         sceneShader.use();
         sceneShader.setBool("isRGBA", true);
         glBindTexture(GL_TEXTURE_2D, grass);
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0.5, 0));
-        sceneShader.setMat4("model", model);
-        glBindVertexArray(grassGeometry.vao);
-        glDrawElements(GL_TRIANGLES, grassGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(2, 0.5, 0));
-        sceneShader.setMat4("model", model);
-        glBindVertexArray(grassGeometry.vao);
-        glDrawElements(GL_TRIANGLES, grassGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-
-        model = glm::translate(glm::mat4(1.0f), glm::vec3(4, 0.5, 0));
+        model = glm::translate(glm::mat4(1.0f), glm::vec3(0, 2, 0));
+        glm::vec3 tmpVec = glm::vec3(1.0, 0, 0);
+        model = glm::rotate(model, glm::radians(180.0f), tmpVec);
+        tmpVec = glm::vec3(4.0);
+        model = glm::scale(model, tmpVec);
         sceneShader.setMat4("model", model);
         glBindVertexArray(grassGeometry.vao);
         glDrawElements(GL_TRIANGLES, grassGeometry.indices.size(), GL_UNSIGNED_INT, 0);
@@ -223,7 +225,7 @@ int main(int argc, char *argv[])
         sceneShader.setBool("isRGBA", false);
 
         // if(stopPainting)
-        //     camera.getCameraInfo(); 
+        //     camera.getCameraInfo();
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -242,7 +244,7 @@ void processInput(GLFWwindow *window)
         glfwSetWindowShouldClose(window, true);
 
     Camera_KeyBoardAction action;
-    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
     {
         stopPainting = !stopPainting;
     }
