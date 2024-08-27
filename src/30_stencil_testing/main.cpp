@@ -12,7 +12,7 @@
 #include <tool/shader.h>
 #include <tool/camera.h>
 #include <tool/gui.h>
-
+#include <tool/myImGui.hpp>
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
@@ -36,17 +36,7 @@ int main(int argc, char *argv[])
 {
     Shader::dirName = argv[1];
     GLFWwindow *window = initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Learn OpenGL");
-
-    const char *glsl_version = "#version 330";
-    // 创建imgui上下文
-    ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
-    (void)io;
-    // 设置样式
-    ImGui::StyleColorsDark();
-    // 设置平台和渲染
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init(glsl_version);
+    myImGui gui(window);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -81,21 +71,26 @@ int main(int argc, char *argv[])
     float myNear = 0.1;
     glEnable(GL_STENCIL_TEST);
     glStencilFunc(GL_NOTEQUAL, 1, 0xff);
+    // glStencilFunc(GL_ALWAYS, 0, 0xff);
     // 1.模板测试失败时保留stencil缓冲中原本的值 2.模板测试通过但深度测试失败时保留stencil缓冲中原本的值 3.模板深度都通过时替换stencil缓冲中的值为glStencilFunc第2个参数ref的值
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
+    bool flag = false;
+    ImVec2 buttonSize = ImVec2(80, 20);
     while (!glfwWindowShouldClose(window))
     {
-        // ImGui_ImplOpenGL3_NewFrame();
-        // ImGui_ImplGlfw_NewFrame();
-        // ImGui::NewFrame();
-        // ImGui::Begin("tune near");
-        // ImGui::SliderFloat("Near", &myNear, 0.1f, 5.0f);
-        // ImGui::End();
         processInput(window);
+
+        gui.newFrame();
+        ImGui::Begin("imgui");
+        if (ImGui::Button("switch", buttonSize))
+        {
+            flag = !flag;
+        }
+        ImGui::End();
 
         glEnable(GL_STENCIL_TEST);
         // 1.stencil test fail  2.depth test fail  3.success
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
 
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastTime;
@@ -189,38 +184,43 @@ int main(int argc, char *argv[])
         glStencilMask(0x00);
 
         glBindVertexArray(0);
-        glStencilMask(0xff);
+        if (flag)
+        {
+            glStencilMask(0xff);
+        }
+        else
+        {
+            glStencilMask(0x00);
+        }
         glEnable(GL_DEPTH_TEST);
         glStencilFunc(GL_ALWAYS, 0, 0xff);
         sceneShader.setFloat("stenci", 0.0);
 
         // 绘制灯光物体
         // ***********************************
-        lightShader.use();
-        lightShader.setMat4("view", view);
-        lightShader.setMat4("projection", projection);
+        // lightShader.use();
+        // lightShader.setMat4("view", view);
+        // lightShader.setMat4("projection", projection);
 
-        glm::vec3 lightPos = glm::vec3(lightPosition.x * glm::sin(currentFrame) * 2.0, lightPosition.y, lightPosition.z);
-        model = glm::translate(glm::mat4(1.0f), lightPos);
-        lightShader.setMat4("model", model);
-        lightShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        // glm::vec3 lightPos = glm::vec3(lightPosition.x * glm::sin(currentFrame) * 2.0, lightPosition.y, lightPosition.z);
+        // model = glm::translate(glm::mat4(1.0f), lightPos);
+        // lightShader.setMat4("model", model);
+        // lightShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
 
-        glBindVertexArray(sphereGeometry.vao);
-        glDrawElements(GL_TRIANGLES, sphereGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+        // glBindVertexArray(sphereGeometry.vao);
+        // glDrawElements(GL_TRIANGLES, sphereGeometry.indices.size(), GL_UNSIGNED_INT, 0);
 
-        for (int i = 0; i < 4; ++i)
-        {
-            model = glm::translate(glm::mat4(1.0f), pointLightPositions[i]);
-            lightShader.setMat4("model", model);
-            lightShader.setVec3("lightColor", pointLightColors[i]);
+        // for (int i = 0; i < 4; ++i)
+        // {
+        //     model = glm::translate(glm::mat4(1.0f), pointLightPositions[i]);
+        //     lightShader.setMat4("model", model);
+        //     lightShader.setVec3("lightColor", pointLightColors[i]);
 
-            glBindVertexArray(sphereGeometry.vao);
-            glDrawElements(GL_TRIANGLES, sphereGeometry.indices.size(), GL_UNSIGNED_INT, 0);
-        }
+        //     glBindVertexArray(sphereGeometry.vao);
+        //     glDrawElements(GL_TRIANGLES, sphereGeometry.indices.size(), GL_UNSIGNED_INT, 0);
+        // }
 
-        // 渲染 gui
-        // ImGui::Render();
-        // ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        gui.render();
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

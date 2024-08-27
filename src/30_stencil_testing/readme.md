@@ -99,6 +99,9 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_REPLEACE);
 while (!glfwWindowShouldClose(window))
 {
     // （循环前先清空模板缓冲，此时缓冲中均为0）  这是之前的想法。。。错了，不清空则使用上次循环的模板缓冲，这都忘了啊
+    // emmmm...后面看了下，这里可能没有错，清空缓存可能确实是把缓冲设置为0
+    // 但有个条件，循环最后需要设置掩码glStencilMask(0xff)，如果后面没有在绘制物体，可以省略glStencilFunc(GL_ALWAYS, 0, 0xff)
+    // 少了0xff，好像清空就失效了。。。
     glClear(GL_STENCIL_BUFFER_BIT);
 
     // *********** 先绘制不需要轮廓的物体 ***********
