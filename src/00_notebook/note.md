@@ -64,3 +64,20 @@ drawMesh(geometry);
 ```
 
 然后在第一次drawMesh之前有两个`setFloat("uvScale")`，明显有一个多余的，但我把第一个注释掉，tm的就是跑不动，总是报出一串很大的数字的错误，应该就是内存泄漏了。
+
+<br>
+
+4. 崩溃
+
+在`33_frame_buffers`章节中，有时候编完跑起来总崩溃
+
+```markdown
+g++ -std=c++17 -Wall -Wextra -g -Iinclude -o output/main.exe src/33_frame_buffers/main.o src/33_frame_buffers/main2.o src/33_frame_buffers/m2.o src/33_frame_buffers/main1.o include/Utils/utils.o 
+include/imgui/imgui_impl_glfw.o include/imgui/imgui_impl_opengl3.o include/imgui/imgui.o include/imgui/imgui_draw.o include/imgui/imgui_widgets.o  -Llib -lglad -lglfw3dll -llibassimp
+Executing 'all' complete!
+./output/main.exe src/33_frame_buffers/
+Makefile:98: recipe for target 'run' failed
+make: *** [run] Error -1073741819
+```
+
+然后我把`main1.cpp`和`main2.cpp`移出文件夹，再编跑起来，就好很多了
