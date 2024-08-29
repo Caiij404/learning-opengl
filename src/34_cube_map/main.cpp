@@ -13,6 +13,16 @@
 #include <tool/shader.h>
 #include <tool/camera.h>
 #include <tool/gui.h>
+#include <tool/glm_io.hpp>
+
+Camera camera(glm::vec3(0.0, 1.0, 6.0));
+#include <tool/mySpace.h>
+#include <tool/myImGui.hpp>
+using namespace std;
+using namespace mySpace;
+
+float lastX = SCREEN_WIDTH / 2.0f; // 鼠标上一帧的位置
+float lastY = SCREEN_HEIGHT / 2.0f;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
@@ -21,38 +31,18 @@ void processInput(GLFWwindow *window);
 void drawSkyBox(Shader shader, BoxGeometry geometry, unsigned int cubeMap);
 
 std::string Shader::dirName;
-int SCREEN_WIDTH = 800;
-int SCREEN_HEIGHT = 600;
 
 // delta time
 float deltaTime = 0.0f;
 float lastTime = 0.0f;
-
-float lastX = SCREEN_WIDTH / 2.0f; // 鼠标上一帧的位置
-float lastY = SCREEN_HEIGHT / 2.0f;
-
-Camera camera(glm::vec3(0.0, 1.0, 6.0));
-#include <tool/mySpace.h>
-using namespace std;
-using namespace mySpace;
 bool stopPainting = false;
+float angle = 1.0f;
 
 int main(int argc, char *argv[])
 {
     Shader::dirName = argv[1];
     GLFWwindow *window = initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Learn OpenGL");
-
-    const char *glsl_version = "#version 330";
-    // 创建imgui上下文
-    ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
-    (void)io;
-    // 设置样式
-    ImGui::StyleColorsDark();
-    // 设置平台和渲染
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init(glsl_version);
-
+    myImGui gui(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
@@ -110,9 +100,23 @@ int main(int argc, char *argv[])
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
+    bool flag = true;
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
+
+        if (flag)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+        else
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        gui.newFrame();
+        gui.createFrameInfo();
+        gui.createButtonSwitchBool(flag);
+        gui.createSliderFloat("angle", angle, 0.0f, 180.0f);
 
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastTime;
@@ -122,7 +126,7 @@ int main(int argc, char *argv[])
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // // 一开始很sb的把drawSkyBox方法放在glClear前面。。。结果就是怎么都画不出天空盒
-        drawSkyBox(skyBoxShader, skyBox, skyBoxTextrue);
+        // drawSkyBox(skyBoxShader, skyBox, skyBoxTextrue);
 
         float radius = 5.0f;
         float camX = sin(currentFrame * 0.5) * radius;
@@ -206,7 +210,9 @@ int main(int argc, char *argv[])
             glBindVertexArray(sphereGeometry.vao);
             glDrawElements(GL_TRIANGLES, sphereGeometry.indices.size(), GL_UNSIGNED_INT, 0);
         }
- 
+
+        drawSkyBox(skyBoxShader, skyBox, skyBoxTextrue);
+
         // 绘制草地
         sceneShader.use();
         sceneShader.setBool("isRGBA", true);
@@ -245,8 +251,7 @@ int main(int argc, char *argv[])
         }
         sceneShader.setBool("isRGBA", false);
 
-        // if(stopPainting)
-        //     camera.getCameraInfo();
+        gui.render();
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -322,13 +327,25 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 
 void drawSkyBox(Shader shader, BoxGeometry geometry, unsigned int cubeMap)
 {
-    glDepthFunc(GL_LEQUAL);
-    glDisable(GL_DEPTH_TEST);
-
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_EQUAL);
+ 
     shader.use();
+    glm::mat4 model(1.0f);
+    glm::vec3 axis(0,0,1);
+    // model = glm::translate(model, axis);
+    model = glm::rotate(model, glm::radians(angle), axis);
+    glm::vec3 s(angle);
+    model = glm::scale(model, s);
     glm::mat4 view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // 移除平移分量
+    // view = glm::translate(view, glm::vec3(0,0,-1));
+    // view = glm::translate(view, axis);
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 100.0f);
+ 
+    glm::mat4 tmp = view * model;
+    cout<<tmp<<endl;
 
+    shader.setMat4("model", model);
     shader.setMat4("view", view);
     shader.setMat4("projection", projection);
 
@@ -339,5 +356,4 @@ void drawSkyBox(Shader shader, BoxGeometry geometry, unsigned int cubeMap)
 
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
-    glEnable(GL_DEPTH_TEST);
 }
