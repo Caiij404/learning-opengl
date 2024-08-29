@@ -77,6 +77,28 @@ int main(int argc, char *argv[])
     unsigned int brickMap = loadTexture("./static/texture/brick_diffuse.jpg");               // 砖块
     unsigned int grassMap = loadTexture("./static/texture/blending_transparent_window.png"); // 草丛
 
+    float quadVertices[] = {
+        // positions   // texCoords
+        -1.0f, 1.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f,
+        1.0f, -1.0f, 1.0f, 0.0f,
+
+        -1.0f, 1.0f, 0.0f, 1.0f,
+        1.0f, -1.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 1.0f, 1.0f};
+
+    // screen quad vao
+    GLuint quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+
     float factor = 0.0;
 
     unsigned int hdrFBO;
@@ -280,20 +302,22 @@ int main(int argc, char *argv[])
         // 绘制hdr输出的texture
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         hdrShader.use();
-        hdrShader.setMat4("view", view);
-        hdrShader.setMat4("projection", projection);
+        // hdrShader.setMat4("view", view);
+        // hdrShader.setMat4("projection", projection);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, colorBuffer);
         hdrShader.setFloat("exposure", 1.0);
 
-        model = glm::mat4(1.0f);
-        // 不知发什么颠，帧缓冲出来的纹理，贴到平面上居然上下颠倒了，这里手动把平面旋转180°，但鼠标和键盘的相机动作也就反了
-        glm::vec3 axis(0, 0, 1);
-        model = glm::rotate(model, glm::radians(180.0f), axis);
-        hdrShader.setMat4("model", model);
+        // model = glm::mat4(1.0f);
+        // // 不知发什么颠，帧缓冲出来的纹理，贴到平面上居然上下颠倒了，这里手动把平面旋转180°，但鼠标和键盘的相机动作也就反了
+        // glm::vec3 axis(0, 0, 1);
+        // model = glm::rotate(model, glm::radians(180.0f), axis);
+        // hdrShader.setMat4("model", model);
 
-        drawMesh(quadGeometry);
+        // drawMesh(quadGeometry);
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         gui.render();
         glfwSwapBuffers(window);
