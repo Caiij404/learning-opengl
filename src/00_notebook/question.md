@@ -1,6 +1,6 @@
 ## 记录问题
 
-1. 33_frame_buffers章节中，后视镜效果没实现
+1. ~~33_frame_buffers章节中，后视镜效果没实现~~
 
 
 2. 34_cube_map，看readme.md

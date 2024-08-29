@@ -20,15 +20,11 @@
 // void processInput(GLFWwindow *window);
 
 // std::string Shader::dirName;
-// int SCREEN_WIDTH = 800;
-// int SCREEN_HEIGHT = 600;
 
 // // delta time
 // float deltaTime = 0.0f;
 // float lastTime = 0.0f;
 
-// float lastX = SCREEN_WIDTH / 2.0f; // 鼠标上一帧的位置
-// float lastY = SCREEN_HEIGHT / 2.0f;
 
 // Camera camera(glm::vec3(0.0, 1.0, 6.0));
 // #include <tool/mySpace.h>
@@ -37,6 +33,8 @@
 // bool stopPainting = false;
 // bool flag = false;
 // int renderType = 0;
+// float lastX = SCREEN_WIDTH / 2.0f; // 鼠标上一帧的位置
+// float lastY = SCREEN_HEIGHT / 2.0f;
 // int main(int argc, char *argv[])
 // {
 //     Shader::dirName = argv[1];
