@@ -14,6 +14,8 @@ uniform sampler2D shadowMap;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
 
+uniform bool flag2;
+// uniform int flag3;
 float shadowCalculation(vec4 fragPosLightSpace, vec3 normal, vec3 frag2light) {
     // 透视除法
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
